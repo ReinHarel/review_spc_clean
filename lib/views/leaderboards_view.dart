@@ -28,7 +28,9 @@ class LeaderboardsView extends StatelessWidget {
           final isUser = student['rank'] == 1;
 
           return Card(
-            color: isUser ? AppColors.spcbaGreen.withValues(alpha: 0.08) : Colors.white,
+            color: isUser
+                ? AppColors.spcbaGreen.withValues(alpha: 0.08)
+                : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
@@ -51,7 +53,10 @@ class LeaderboardsView extends StatelessWidget {
                 ),
               ),
               subtitle: Text(student['points']),
-              trailing: Text(student['avatar'], style: const TextStyle(fontSize: 22)),
+              trailing: Text(
+                student['avatar'],
+                style: const TextStyle(fontSize: 22),
+              ),
             ),
           );
         },

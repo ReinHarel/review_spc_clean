@@ -149,7 +149,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                     value: _tasks.isEmpty
                         ? 0
                         : _tasks.where((t) => t['isDone'] as bool).length /
-                            _tasks.length,
+                              _tasks.length,
                     backgroundColor: Colors.grey.shade300,
                     color: AppColors.spcbaGreen,
                     minHeight: 8,
@@ -212,8 +212,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                             '${index + 10}',
                             style: TextStyle(
                               fontSize: 11,
-                              color:
-                                  isSelected ? Colors.white70 : Colors.grey[600],
+                              color: isSelected
+                                  ? Colors.white70
+                                  : Colors.grey[600],
                             ),
                           ),
                         ],
@@ -286,9 +287,13 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: (task['color'] as Color).withValues(alpha: 0.15),
+                            color: (task['color'] as Color).withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -308,8 +313,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       ],
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline,
-                          color: Colors.redAccent, size: 20),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
                       onPressed: () {
                         setState(() {
                           _tasks.removeAt(index);

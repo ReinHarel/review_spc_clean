@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'views/dashboard_view.dart';
+import 'core/constants.dart';
+import 'views/login_view.dart';
 
 void main() {
   runApp(const ReviewSPCApp());
@@ -13,7 +14,11 @@ class ReviewSPCApp extends StatelessWidget {
     return MaterialApp(
       title: 'ReviewSPC',
       debugShowCheckedModeBanner: false,
-      home: const DashboardView(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.spcbaGreen),
+        useMaterial3: true,
+      ),
+      home: const LoginView(),
     );
   }
 }
