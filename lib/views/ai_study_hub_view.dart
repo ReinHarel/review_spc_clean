@@ -9,30 +9,67 @@ class AiStudyHubView extends StatefulWidget {
 }
 
 class _AiStudyHubViewState extends State<AiStudyHubView> {
-  // Sample data for uploaded reviewer materials
+  String _selectedSubject = 'IT Spec 2';
+  bool _isGeneratingSummary = false;
+  bool _hasSelectedFile = false;
+  String _activeFileName = '';
+
+  final List<String> _subjects = [
+    'IT Spec 2',
+    'Data Structures',
+    'Database Management',
+    'Accounting 101',
+    'General Education'
+  ];
+
+  // Dummy list ng sample uploaded reviewers
   final List<Map<String, String>> _uploadedFiles = [
     {
-      'title': 'Chapter 1 - Introduction to Biology.pdf',
+      'title': 'Chapter 1 - Intro to Flutter & Dart.pdf',
+      'subject': 'IT Spec 2',
       'size': '2.4 MB',
-      'date': 'Aug 05, 2026',
-      'type': 'PDF',
+      'date': 'Today, 10:15 AM'
     },
     {
-      'title': 'Lecture Notes - World History.docx',
+      'title': 'Database Normalization Notes.docx',
+      'subject': 'Database Management',
       'size': '1.1 MB',
-      'date': 'Aug 06, 2026',
-      'type': 'DOC',
+      'date': 'Yesterday'
     },
   ];
 
   void _simulateFileUpload() {
+    setState(() {
+      _hasSelectedFile = true;
+      _activeFileName = 'MIDTERM_REVIEWER_2026.pdf';
+      _uploadedFiles.insert(0, {
+        'title': _activeFileName,
+        'subject': _selectedSubject,
+        'size': '3.8 MB',
+        'date': 'Just now'
+      });
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('File picker triggered! (Pick a PDF, Image, or DOC)'),
+      SnackBar(
+        content: Text('Uploaded $_activeFileName successfully!'),
         backgroundColor: AppColors.spcbaGreen,
-        duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  void _generateAiSummary(String fileName) {
+    setState(() {
+      _isGeneratingSummary = true;
+      _activeFileName = fileName;
+    });
+
+    // Simulate AI delay
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() {
+        _isGeneratingSummary = false;
+      });
+    });
   }
 
   @override
@@ -44,213 +81,147 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            Text(
-              'Upload Reviewer Materials',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.spcbaGreen,
-              ),
+            // Header Description
+            const Text(
+              'Upload & Summarize Reviewers 📄✨',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
             Text(
-              'Upload your lecture slides, notes, or PDFs to generate AI summaries and quizzes.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              'Drop your lecture slides, notes, or PDFs below to generate instant AI study guides.',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // Dropzone / File Upload Box
-            InkWell(
-              onTap: _simulateFileUpload,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 28,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.spcbaGreen.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.spcbaGreen.withValues(alpha: 0.3),
-                    width: 1.5,
-                    style: BorderStyle.solid,
-                  ),
-                ),
+            // ==================== UPLOAD CARD CONTAINER ====================
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.grey.shade300, style: BorderStyle.solid),
+              ),
+              color: Colors.teal.shade50.withOpacity(0.4),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.spcbaGreen.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.cloud_upload_outlined,
-                        size: 36,
+                        size: 40,
                         color: AppColors.spcbaGreen,
                       ),
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Tap to upload reviewer files',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColors.spcbaGreen,
-                      ),
+                      'Drag & Drop your study materials here',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Supports PDF, DOCX, PNG, JPG (Max 25MB)',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      'Supports PDF, DOCX, and PPTX (Max 25MB)',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subject Selector before upload
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Tag Subject: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                        DropdownButton<String>(
+                          value: _selectedSubject,
+                          underline: const SizedBox(),
+                          items: _subjects.map((subj) {
+                            return DropdownMenuItem(
+                              value: subj,
+                              child: Text(subj, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedSubject = val);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Browse File Button
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.spcbaGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _simulateFileUpload,
+                      icon: const Icon(Icons.folder_open),
+                      label: const Text('Browse Local File'),
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 28),
 
-            const SizedBox(height: 24),
-
-            // Quick Actions Section
-            Text(
-              'Quick AI Actions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            // ==================== UPLOADED FILES SECTION ====================
+            const Text(
+              'Your Study Documents',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildActionChip(
-                    Icons.auto_awesome,
-                    'Generate Quiz',
-                    Colors.orange,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildActionChip(
-                    Icons.summarize_outlined,
-                    'Summarize File',
-                    Colors.blue,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildActionChip(
-                    Icons.style_outlined,
-                    'Create Flashcards',
-                    Colors.purple,
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 12),
 
-            const SizedBox(height: 24),
-
-            // Recent Files List Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'My Reviewers (${_uploadedFiles.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextButton(onPressed: () {}, child: const Text('View All')),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Recent Files List
-            ListView.separated(
+            ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _uploadedFiles.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final file = _uploadedFiles[index];
                 return Card(
-                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade300),
+                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: ListTile(
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.spcbaGreen.withValues(alpha: 0.1),
+                        color: Colors.red.shade50,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        file['type'] == 'PDF'
-                            ? Icons.picture_as_pdf
-                            : Icons.description,
-                        color: AppColors.spcbaGreen,
-                      ),
+                      child: Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
                     ),
                     title: Text(
                       file['title']!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     subtitle: Text(
-                      '${file['size']} • Uploaded ${file['date']}',
-                      style: const TextStyle(fontSize: 12),
+                      '${file['subject']} • ${file['size']} • ${file['date']}',
+                      style: const TextStyle(fontSize: 11),
                     ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '$value selected for ${file['title']}',
-                            ),
+                    trailing: Wrap(
+                      spacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                        );
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'Summarize',
-                          child: Row(
-                            children: [
-                              Icon(Icons.summarize, size: 18),
-                              SizedBox(width: 8),
-                              Text('Summarize'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Generate Quiz',
-                          child: Row(
-                            children: [
-                              Icon(Icons.quiz, size: 18),
-                              SizedBox(width: 8),
-                              Text('Generate Quiz'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red, size: 18),
-                              SizedBox(width: 8),
-                              Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
+                          onPressed: () => _generateAiSummary(file['title']!),
+                          icon: const Icon(Icons.auto_awesome, size: 14),
+                          label: const Text('Summarize', style: TextStyle(fontSize: 12)),
                         ),
                       ],
                     ),
@@ -258,23 +229,110 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
                 );
               },
             ),
+            const SizedBox(height: 28),
+
+            // ==================== AI SUMMARY RESULT PANEL ====================
+            if (_isGeneratingSummary)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(color: AppColors.spcbaGreen),
+                      SizedBox(height: 12),
+                      Text('AI is reading and summarizing your document... 🧠✨'),
+                    ],
+                  ),
+                ),
+              )
+            else if (_activeFileName.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.spcbaGreen.withOpacity(0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade100,
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'AI Summary: $_activeFileName',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.spcbaGreen,
+                            ),
+                          ),
+                        ),
+                        Chip(
+                          avatar: const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                          label: const Text('Ready', style: TextStyle(fontSize: 11)),
+                          backgroundColor: Colors.green.shade50,
+                        )
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    const Text(
+                      '📌 Key Summary Points:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSummaryBullet('Introduction to core architectural components and state management.'),
+                    _buildSummaryBullet('Key differences between Stateless and Stateful Widgets in responsive layouts.'),
+                    _buildSummaryBullet('Best practices for structuring Clean Code in Flutter Web projects.'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.style, size: 16),
+                          label: const Text('Generate Flashcards'),
+                        ),
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.quiz, size: 16),
+                          label: const Text('Create Quiz'),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionChip(IconData icon, String label, Color color) {
-    return ActionChip(
-      avatar: Icon(icon, color: color, size: 18),
-      label: Text(label),
-      backgroundColor: color.withValues(alpha: 0.08),
-      side: BorderSide(color: color.withValues(alpha: 0.2)),
-      onPressed: () {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$label feature clicked!')));
-      },
+  Widget _buildSummaryBullet(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
