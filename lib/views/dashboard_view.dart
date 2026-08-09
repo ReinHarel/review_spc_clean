@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
-// Gagamitin natin ang EXISTING files sa folder mo:
-import 'ai_study_hub_view.dart';
-import 'quiz_hub_view.dart';
-import 'study_planner_view.dart';
-import 'ai_tutor_view.dart';
 import 'achievements_view.dart';
-import 'subject_reviewers_view.dart';
-import 'progress_view.dart';
+import 'ai_study_hub_view.dart';
+import 'ai_tutor_view.dart';
 import 'leaderboards_view.dart';
 import 'profile_view.dart';
+import 'progress_view.dart';
+import 'quiz_hub_view.dart';
+import 'study_planner_view.dart';
+import 'subject_reviewers_view.dart';
 
 class DashboardView extends StatefulWidget {
   final String? userName;
@@ -151,7 +150,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Grid ng Action Cards -> Tuturo na sa mga Tamang Existing Views mo!
+                  // Grid ng Action Cards
                   GridView.count(
                     crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 2,
                     shrinkWrap: true,
@@ -160,7 +159,6 @@ class _DashboardViewState extends State<DashboardView> {
                     mainAxisSpacing: 16,
                     childAspectRatio: MediaQuery.of(context).size.width > 600 ? 1.4 : 1.1,
                     children: [
-                      // 1. AI Study Hub -> Nakaturo na sa AiStudyHubView()
                       _buildModuleCard(
                         title: 'AI Study Hub',
                         subtitle: 'Upload PDF / photos',
@@ -170,8 +168,6 @@ class _DashboardViewState extends State<DashboardView> {
                         iconBg: const Color(0xFFD2E3D0),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiStudyHubView())),
                       ),
-
-                      // 2. Quiz & Flashcards -> Nakaturo sa QuizHubView()
                       _buildModuleCard(
                         title: 'Quiz & Flashcards',
                         subtitle: 'Train your brain',
@@ -181,8 +177,6 @@ class _DashboardViewState extends State<DashboardView> {
                         iconBg: const Color(0xFFD2E3D0),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView())),
                       ),
-
-                      // 3. Study Planner -> Nakaturo sa StudyPlannerView()
                       _buildModuleCard(
                         title: 'Study Planner',
                         subtitle: 'Calendar & exams',
@@ -192,8 +186,6 @@ class _DashboardViewState extends State<DashboardView> {
                         iconBg: const Color(0xFFDDD2E8),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyPlannerView())),
                       ),
-
-                      // 4. AI Tutor -> Nakaturo sa AiTutorView()
                       _buildModuleCard(
                         title: 'AI Tutor',
                         subtitle: 'Chat & learn',
@@ -203,8 +195,6 @@ class _DashboardViewState extends State<DashboardView> {
                         iconBg: const Color(0xFFE7D0E8),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiTutorView())),
                       ),
-
-                      // 5. Achievements -> Nakaturo sa AchievementsView()
                       _buildModuleCard(
                         title: 'Achievements',
                         subtitle: 'Badges & rewards',
@@ -214,8 +204,6 @@ class _DashboardViewState extends State<DashboardView> {
                         iconBg: const Color(0xFFFCE4EC),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AchievementsView())),
                       ),
-
-                      // 6. Subject Reviewers -> Nakaturo sa SubjectReviewersView()
                       _buildModuleCard(
                         title: 'Subject Reviewers',
                         subtitle: 'Courses & topics',
@@ -234,7 +222,7 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       ),
 
-      // Bottom Navigation Bar
+      // Inayos na 3-Tab Bottom Bar (Home, Analytics, Leaderboards)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentNavIndex,
         selectedItemColor: const Color(0xFF1E5E2F),
@@ -243,13 +231,12 @@ class _DashboardViewState extends State<DashboardView> {
         elevation: 4,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          setState(() => _currentNavIndex = index);
-          if (index == 1) {
+          if (index == 0) {
+            setState(() => _currentNavIndex = 0);
+          } else if (index == 1) {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView()));
           } else if (index == 2) {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardsView()));
-          } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileView()));
           }
         },
         items: const [
@@ -263,10 +250,6 @@ class _DashboardViewState extends State<DashboardView> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.emoji_events_rounded),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
             label: '',
           ),
         ],

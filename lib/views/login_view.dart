@@ -168,7 +168,7 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _buildDropdown(String hint, List<String> items, String? currentValue, Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: currentValue,
+      initialValue: currentValue,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,

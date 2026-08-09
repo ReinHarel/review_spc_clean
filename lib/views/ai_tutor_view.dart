@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../core/constants.dart';
 
 class AiTutorView extends StatefulWidget {
   const AiTutorView({super.key});
@@ -10,45 +9,73 @@ class AiTutorView extends StatefulWidget {
 
 class _AiTutorViewState extends State<AiTutorView> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [
+  final ScrollController _scrollController = ScrollController();
+  bool _isListening = false;
+
+  final List<Map<String, String>> _messages = [
     {
-      'isUser': false,
-      'text':
-          'Hello Rein! I am your AI Study Tutor. 🎓 How can I help you review your lessons today?',
-      'time': '10:00 AM',
-    },
-    {
-      'isUser': true,
-      'text': 'Can you explain Photosynthesis in simple terms?',
-      'time': '10:01 AM',
-    },
-    {
-      'isUser': false,
-      'text':
-          'Sure! Think of Photosynthesis as plants cooking their own food using Sunlight, Water, and Carbon Dioxide to produce Oxygen and Sugar (Glucose). 🌿☀️',
-      'time': '10:01 AM',
+      'sender': 'ai',
+      'text': 'Hello! I\'m your AI tutor. How can I help you with your studies today?'
     },
   ];
 
-  void _sendMessage([String? customText]) {
-    final text = customText ?? _messageController.text.trim();
+  void _sendMessage() {
+    final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add({'isUser': true, 'text': text, 'time': 'Now'});
+      _messages.add({'sender': 'user', 'text': text});
       _messageController.clear();
     });
+
+    _scrollToBottom();
 
     // Simulated AI response
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
           _messages.add({
-            'isUser': false,
-            'text': 'Got it! I am processing your request about: "$text"... 🤖',
-            'time': 'Now',
+            'sender': 'ai',
+            'text': 'Great question! Let me break that down simply for you. Is there a specific topic or concept you\'d like to focus on?'
           });
         });
+        _scrollToBottom();
+      }
+    });
+  }
+
+  void _toggleListening() {
+    setState(() {
+      _isListening = !_isListening;
+    });
+
+    if (_isListening) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🎙️ Listening... Speak into your microphone.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      // Simulate speech recognition filling text
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && _isListening) {
+          setState(() {
+            _messageController.text = "Explain the core concepts of this lesson.";
+            _isListening = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -56,164 +83,211 @@ class _AiTutorViewState extends State<AiTutorView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7F5),
       appBar: AppBar(
-        title: const Text('AI Study Tutor'),
-        backgroundColor: AppColors.spcbaGreen,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Clear Chat',
-            onPressed: () {
-              setState(() => _messages.clear());
-            },
-          ),
-        ],
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFF1E5E2F),
+                  child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 20),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'AI Tutor',
+                  style: TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  'Online',
+                  style: TextStyle(color: Colors.green, fontSize: 11),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
           // Chat Messages List
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                final isUser = msg['isUser'] as bool;
-                return _buildChatBubble(msg['text']!, isUser, msg['time']!);
+                final isUser = msg['sender'] == 'user';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Row(
+                    mainAxisAlignment:
+                        isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isUser) ...[
+                        const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Color(0xFF1E5E2F),
+                          child: Icon(Icons.smart_toy_rounded, color: Colors.white, size: 18),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isUser ? const Color(0xFF1E5E2F) : Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(18),
+                              topRight: const Radius.circular(18),
+                              bottomLeft: Radius.circular(isUser ? 18 : 4),
+                              bottomRight: Radius.circular(isUser ? 4 : 18),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha:0.04),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            msg['text']!,
+                            style: TextStyle(
+                              color: isUser ? Colors.white : const Color(0xFF1E293B),
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
 
-          // Quick Prompt Suggestions
+          // Bottom Bar Input with Mic & Send buttons
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            color: Colors.grey.shade100,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildPromptChip('💡 Summarize my notes'),
-                  const SizedBox(width: 8),
-                  _buildPromptChip('❓ Ask 3 quiz questions'),
-                  const SizedBox(width: 8),
-                  _buildPromptChip('📝 Explain in simple terms'),
-                ],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Color(0xFFE2E8F0)),
               ),
             ),
-          ),
-
-          // Message Input Field
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 5,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
+            child: Row(
+              children: [
+                // Text Input Box
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F4F0),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                     child: TextField(
                       controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Ask AI Tutor anything...',
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: AppColors.spcbaGreen,
-                          ),
-                        ),
+                      style: const TextStyle(fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'Ask your question...',
+                        hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: AppColors.spcbaGreen,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      onPressed: () => _sendMessage(),
+                ),
+                const SizedBox(width: 8),
+
+                // Mic Recording Button
+                GestureDetector(
+                  onTap: _toggleListening,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _isListening ? Colors.red : const Color(0xFF1E5E2F),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isListening ? Colors.red : const Color(0xFF1E5E2F))
+                              .withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isListening ? Icons.mic : Icons.mic_none_rounded,
+                      color: Colors.white,
+                      size: 22,
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+
+                // Send Button
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E5E2F),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF1E5E2F).withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildChatBubble(String text, bool isUser, String time) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.spcbaGreen : Colors.grey.shade200,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 0),
-            bottomRight: Radius.circular(isUser ? 0 : 16),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: isUser
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Text(
-              text,
-              style: TextStyle(
-                color: isUser ? Colors.white : Colors.black87,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: TextStyle(
-                color: isUser ? Colors.white70 : Colors.grey.shade600,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPromptChip(String label) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      backgroundColor: Colors.white,
-      side: BorderSide(color: Colors.grey.shade300),
-      onPressed: () =>
-          _sendMessage(label.replaceAll(RegExp(r'^[^\w\s]+'), '').trim()),
     );
   }
 }
