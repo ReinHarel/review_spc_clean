@@ -9,329 +9,306 @@ class AiStudyHubView extends StatefulWidget {
 }
 
 class _AiStudyHubViewState extends State<AiStudyHubView> {
-  String _selectedSubject = 'IT Spec 2';
-  bool _isGeneratingSummary = false;
-  bool _hasSelectedFile = false;
-  String _activeFileName = '';
-
-  final List<String> _subjects = [
+  // Dynamic list para sa Irreg students (pwedeng madagdagan)
+  List<String> subjects = [
+    'IT 101 - Data Structures',
+    'IT 102 - Web Systems',
+    'IT 103 - OOP',
+    'IT 104 - DBMS',
     'IT Spec 2',
-    'Data Structures',
-    'Database Management',
-    'Accounting 101',
-    'General Education'
+    '+ Add Custom Subject (Irreg)',
   ];
 
-  // Dummy list ng sample uploaded reviewers
-  final List<Map<String, String>> _uploadedFiles = [
-    {
-      'title': 'Chapter 1 - Intro to Flutter & Dart.pdf',
-      'subject': 'IT Spec 2',
-      'size': '2.4 MB',
-      'date': 'Today, 10:15 AM'
-    },
-    {
-      'title': 'Database Normalization Notes.docx',
-      'subject': 'Database Management',
-      'size': '1.1 MB',
-      'date': 'Yesterday'
-    },
-  ];
+  String selectedSubject = 'IT Spec 2';
+  final TextEditingController _ytController = TextEditingController();
 
-  void _simulateFileUpload() {
-    setState(() {
-      _hasSelectedFile = true;
-      _activeFileName = 'MIDTERM_REVIEWER_2026.pdf';
-      _uploadedFiles.insert(0, {
-        'title': _activeFileName,
-        'subject': _selectedSubject,
-        'size': '3.8 MB',
-        'date': 'Just now'
-      });
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Uploaded $_activeFileName successfully!'),
-        backgroundColor: AppColors.spcbaGreen,
+  // Helper dialog para sa Custom Subject (Irreg Students)
+  void _showAddSubjectDialog() {
+    TextEditingController customSubjectController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Custom Subject'),
+        content: TextField(
+          controller: customSubjectController,
+          decoration: const InputDecoration(
+            hintText: 'e.g., IT 109 - Mobile Dev',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
+            onPressed: () {
+              if (customSubjectController.text.trim().isNotEmpty) {
+                setState(() {
+                  String newSub = customSubjectController.text.trim();
+                  subjects.insert(subjects.length - 1, newSub);
+                  selectedSubject = newSub;
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
-  void _generateAiSummary(String fileName) {
-    setState(() {
-      _isGeneratingSummary = true;
-      _activeFileName = fileName;
-    });
-
-    // Simulate AI delay
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        _isGeneratingSummary = false;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Study Hub'),
-        backgroundColor: AppColors.spcbaGreen,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  // Content Mismatch Dialog with Best Practice "Override" Button
+  void _showMismatchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header Description
-            const Text(
-              'Upload & Summarize Reviewers 📄✨',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Drop your lecture slides, notes, or PDFs below to generate instant AI study guides.',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-
-            // ==================== UPLOAD CARD CONTAINER ====================
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade300, style: BorderStyle.solid),
-              ),
-              color: Colors.teal.shade50.withOpacity(0.4),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.cloud_upload_outlined,
-                        size: 40,
-                        color: AppColors.spcbaGreen,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Drag & Drop your study materials here',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Supports PDF, DOCX, and PPTX (Max 25MB)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Subject Selector before upload
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Tag Subject: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                        DropdownButton<String>(
-                          value: _selectedSubject,
-                          underline: const SizedBox(),
-                          items: _subjects.map((subj) {
-                            return DropdownMenuItem(
-                              value: subj,
-                              child: Text(subj, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedSubject = val);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Browse File Button
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.spcbaGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: _simulateFileUpload,
-                      icon: const Icon(Icons.folder_open),
-                      label: const Text('Browse Local File'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // ==================== UPLOADED FILES SECTION ====================
-            const Text(
-              'Your Study Documents',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const CircleAvatar(
+              radius: 30,
+              backgroundColor: Color(0xFFFFEBEE),
+              child: Icon(Icons.cancel_outlined, color: Colors.red, size: 36),
             ),
             const SizedBox(height: 12),
-
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _uploadedFiles.length,
-              itemBuilder: (context, index) {
-                final file = _uploadedFiles[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
-                    ),
-                    title: Text(
-                      file['title']!,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      '${file['subject']} • ${file['size']} • ${file['date']}',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    trailing: Wrap(
-                      spacing: 8,
-                      children: [
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: () => _generateAiSummary(file['title']!),
-                          icon: const Icon(Icons.auto_awesome, size: 14),
-                          label: const Text('Summarize', style: TextStyle(fontSize: 12)),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+            const Text(
+              'Content Mismatch',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red),
             ),
-            const SizedBox(height: 28),
-
-            // ==================== AI SUMMARY RESULT PANEL ====================
-            if (_isGeneratingSummary)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(color: AppColors.spcbaGreen),
-                      SizedBox(height: 12),
-                      Text('AI is reading and summarizing your document... 🧠✨'),
-                    ],
-                  ),
-                ),
-              )
-            else if (_activeFileName.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.spcbaGreen.withOpacity(0.5)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.shade100,
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'AI Summary: $_activeFileName',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: AppColors.spcbaGreen,
-                            ),
-                          ),
-                        ),
-                        Chip(
-                          avatar: const Icon(Icons.check_circle, size: 14, color: Colors.green),
-                          label: const Text('Ready', style: TextStyle(fontSize: 11)),
-                          backgroundColor: Colors.green.shade50,
-                        )
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    const Text(
-                      '📌 Key Summary Points:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSummaryBullet('Introduction to core architectural components and state management.'),
-                    _buildSummaryBullet('Key differences between Stateless and Stateful Widgets in responsive layouts.'),
-                    _buildSummaryBullet('Best practices for structuring Clean Code in Flutter Web projects.'),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.style, size: 16),
-                          label: const Text('Generate Flashcards'),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.quiz, size: 16),
-                          label: const Text('Create Quiz'),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
               ),
-            ],
+              child: const Text(
+                'The uploaded material appears unrelated to your subject. Please check alignment to maintain study accuracy.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.black87),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Text('Expected: $selectedSubject', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Text('Detected: Biology / Life Sciences', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Try Again', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Processing document with user override...')),
+                  );
+                },
+                child: const Text('Proceed Anyway', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryBullet(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 13, height: 1.4),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI Study Hub', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.spcbaGreen,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upload & Summarize Reviewers 📄✨',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const Text(
+              'Drop lecture notes or paste video links to generate instant AI materials.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+
+            // Subject Tag Dropdown (Irreg-Friendly)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Text('Tag Subject: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedSubject,
+                        isExpanded: true,
+                        items: subjects.map((String sub) {
+                          return DropdownMenuItem<String>(
+                            value: sub,
+                            child: Text(
+                              sub,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: sub.contains('Custom') ? AppColors.spcbaGreen : Colors.black,
+                                fontWeight: sub.contains('Custom') ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue == '+ Add Custom Subject (Irreg)') {
+                            _showAddSubjectDialog();
+                          } else if (newValue != null) {
+                            setState(() {
+                              selectedSubject = newValue;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Source 1: File Upload Box
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.spcbaGreen.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.spcbaGreen.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.cloud_upload_outlined, size: 40, color: AppColors.spcbaGreen),
+                  const SizedBox(height: 8),
+                  const Text('Import PDF Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text('Supports PDF, DOCX, PPTX (Max 25MB)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
+                    onPressed: _showMismatchDialog, // Demo: Click to trigger Mismatch Dialog test
+                    icon: const Icon(Icons.folder_open, color: Colors.white, size: 16),
+                    label: const Text('Browse File (Test Mismatch)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Source 2: YouTube Link Box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.play_circle_fill, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Paste YouTube Video Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _ytController,
+                    decoration: const InputDecoration(
+                      hintText: 'https://youtube.com/watch?v=...',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        if (_ytController.text.isNotEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Analyzing YouTube Transcript...')),
+                          );
+                        }
+                      },
+                      child: const Text('Process Video Link', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            const Text('Your Study Documents', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 10),
+
+            // Document Cards List
+            _buildDocCard('Chapter 1 - Intro to Flutter.pdf', 'IT Spec 2 • 2.4 MB'),
+            _buildDocCard('Database Normalization Notes.docx', 'IT 104 - DBMS • 1.1 MB'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocCard(String title, String subtitle) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+        trailing: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.spcbaGreen,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           ),
-        ],
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Generating AI Summary for $title...')),
+            );
+          },
+          child: const Text('Summarize ✨', style: TextStyle(color: Colors.white, fontSize: 11)),
+        ),
       ),
     );
   }

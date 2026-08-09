@@ -1,179 +1,180 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
-import 'dashboard_view.dart';
-import 'progress_view.dart';
-import 'leaderboards_view.dart';
-import 'login_view.dart';
 
-class ProfileView extends StatefulWidget {
+class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
-
-  @override
-  State<ProfileView> createState() => _ProfileViewState();
-}
-
-class _ProfileViewState extends State<ProfileView> {
-  final int _selectedBottomNav = 3; // 3 is Active for Profile
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.spcbaGreen,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
+      backgroundColor: const Color(0xFFF8FAF8),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const SizedBox(height: 12),
-            // Profile Header Card
-            Center(
+            // Top Green Profile Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
+              decoration: const BoxDecoration(
+                color: AppColors.spcbaGreen,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
               child: Column(
                 children: [
                   const CircleAvatar(
-                    radius: 45,
-                    backgroundColor: AppColors.spcbaGreen,
+                    radius: 36,
+                    backgroundColor: Colors.amber,
                     child: CircleAvatar(
-                      radius: 42,
-                      backgroundImage: AssetImage('assets/images/user_avatar.png'), 
-                      // Fallback icon if image doesn't exist
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
+                      radius: 33,
+                      backgroundColor: AppColors.spcbaGreen,
+                      child: Text('JD', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const Text('Juan Dela Cruz', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('BSIT - 3rd Year • Section 501', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Rein',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'rein.student@spcba.edu.ph',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 8),
+
+                  // Rank Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.spcbaGreen.withValues(alpha: 0.15),
+                      border: Border.all(color: Colors.amber, width: 1.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      'BSIT - Regular Student',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.spcbaGreen,
-                      ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield, color: Colors.amber, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Academic Warrior • Level 4',
+                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            const Divider(),
 
-            // Account Settings List
-            _buildProfileOption(
-              icon: Icons.person_outline,
-              title: 'Edit Profile Information',
-              onTap: () {},
-            ),
-            _buildProfileOption(
-              icon: Icons.notifications_none,
-              title: 'Notification Settings',
-              onTap: () {},
-            ),
-            _buildProfileOption(
-              icon: Icons.security_outlined,
-              title: 'Privacy & Password',
-              onTap: () {},
-            ),
-            _buildProfileOption(
-              icon: Icons.help_outline,
-              title: 'Help & Support',
-              onTap: () {},
-            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // XP Progress Bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('XP Progress to Level 5', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text('1,240 / 2,000 XP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: const LinearProgressIndicator(
+                      value: 1240 / 2000,
+                      color: AppColors.spcbaGreen,
+                      backgroundColor: Color(0xFFE0E0E0),
+                      minHeight: 10,
+                    ),
+                  ),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('760 XP to Honor Scholar', style: TextStyle(fontSize: 10, color: AppColors.spcbaGreen)),
+                  ),
+                  const SizedBox(height: 16),
 
-            const SizedBox(height: 20),
-            
-            // Logout Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
-                  foregroundColor: Colors.red,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () {
-                  // Navigate back to Login Screen
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginView()),
-                    (route) => false,
-                  );
-                },
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
+                  // Metric Cards (Total XP, Streak, Mastered)
+                  Row(
+                    children: [
+                      _buildMetricBox('Total XP', '1,240', null),
+                      const SizedBox(width: 8),
+                      _buildMetricBox('Streak', '5', '🔥'),
+                      const SizedBox(width: 8),
+                      _buildMetricBox('Mastered', '3', '⭐'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Rank Levels List
+                  const Text('Rank levels', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 10),
+
+                  _buildRankItem('Lv1 — Freshman Reviewer', false, false),
+                  _buildRankItem('Lv2 — Dedicated Student', false, false),
+                  _buildRankItem('Lv3 — Quiz Enthusiast', false, false),
+                  _buildRankItem('Lv4 — Academic Warrior ← You', true, true),
+                  _buildRankItem('Lv5 — Honor Scholar', false, false),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedBottomNav,
-        selectedItemColor: AppColors.spcbaGreen,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == _selectedBottomNav) return;
-
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DashboardView(userName: 'Rein', studentStatus: 'Regular'),
-              ),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProgressView()),
-            );
-          } else if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LeaderboardsView()),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events_outlined), activeIcon: Icon(Icons.emoji_events), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: ''),
-        ],
+  Widget _buildMetricBox(String title, String val, String? icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            Text(title, style: const TextStyle(fontSize: 11, color: AppColors.spcbaGreen, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                if (icon != null) ...[
+                  const SizedBox(width: 4),
+                  Text(icon, style: const TextStyle(fontSize: 14)),
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildProfileOption({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black87),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
+  Widget _buildRankItem(String title, bool isCurrent, bool isUnlocked) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isCurrent ? AppColors.spcbaGreen.withValues(alpha: 0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isCurrent ? Icons.check_circle : Icons.circle_outlined,
+            color: isCurrent ? AppColors.spcbaGreen : Colors.grey.shade400,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+              color: isCurrent ? AppColors.spcbaGreen : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
