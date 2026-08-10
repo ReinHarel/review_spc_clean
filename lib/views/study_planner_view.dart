@@ -9,7 +9,8 @@ class StudyPlannerView extends StatefulWidget {
 
 class _StudyPlannerViewState extends State<StudyPlannerView> {
   int _selectedDayIndex = 0; // 0: Mon, 1: Tue...
-  
+  String _selectedFilter = 'All';
+
   final List<Map<String, String>> _days = [
     {'day': 'Mon', 'date': '10'},
     {'day': 'Tue', 'date': '11'},
@@ -20,6 +21,13 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     {'day': 'Sun', 'date': '16'},
   ];
 
+  final List<String> _subjectFilters = [
+    'All',
+    'Biology 101',
+    'Computer Prog 2',
+    'Phil History',
+  ];
+
   final List<Map<String, dynamic>> _tasks = [
     {
       'title': 'Review Biology Chapter 1 Notes',
@@ -27,7 +35,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       'time': '09:00 AM - 10:30 AM',
       'isDone': true,
       'priority': 'High',
-      'color': Colors.lightGreen,
+      'priorityColor': Colors.red,
     },
     {
       'title': 'Practice Dart & Flutter Coding Exercises',
@@ -35,7 +43,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       'time': '01:00 PM - 03:00 PM',
       'isDone': false,
       'priority': 'Medium',
-      'color': Colors.blue,
+      'priorityColor': Colors.orange,
     },
     {
       'title': 'Read Philippine History Chapters 3 & 4',
@@ -43,7 +51,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       'time': '04:00 PM - 05:30 PM',
       'isDone': false,
       'priority': 'Low',
-      'color': Colors.orange,
+      'priorityColor': Colors.blue,
     },
   ];
 
@@ -188,6 +196,10 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredTasks = _selectedFilter == 'All'
+        ? _tasks
+        : _tasks.where((t) => t['subject'] == _selectedFilter).toList();
+
     final completedCount = _tasks.where((t) => t['isDone'] as bool).length;
     final totalCount = _tasks.length;
     final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
@@ -272,8 +284,8 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: Colors.orange.shade300),
                               ),
-                              child: Row(
-                                children: const [
+                              child: const Row(
+                                children: [
                                   Text('🔥 ', style: TextStyle(fontSize: 13)),
                                   Text(
                                     '5 Day Streak',
@@ -307,8 +319,8 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color(0xFFE8F5E9), const Color(0xFFE0F2FE)],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE8F5E9), Color(0xFFE0F2FE)],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
@@ -321,9 +333,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: RichText(
-                            text: TextSpan(
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
-                              children: const [
+                            text: const TextSpan(
+                              style: TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
+                              children: [
                                 TextSpan(text: 'AI Study Insight: ', style: TextStyle(fontWeight: FontWeight.bold)),
                                 TextSpan(text: 'Your peak focus time is 09:00 AM. Great job starting Biology early!'),
                               ],
@@ -404,7 +416,49 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 4. TASKS HEADER
+                  // 4. SUBJECT FILTER CHIPS
+                  SizedBox(
+                    height: 34,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _subjectFilters.length,
+                      itemBuilder: (context, index) {
+                        final filter = _subjectFilters[index];
+                        final isSelected = _selectedFilter == filter;
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            selected: isSelected,
+                            label: Text(
+                              filter,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                              ),
+                            ),
+                            selectedColor: const Color(0xFF1E5E2F),
+                            backgroundColor: Colors.white,
+                            checkmarkColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+                              ),
+                            ),
+                            onSelected: (bool selected) {
+                              setState(() {
+                                _selectedFilter = filter;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 5. TASKS HEADER
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -413,21 +467,22 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                       ),
                       Text(
-                        '${_tasks.length} Items',
+                        '${filteredTasks.length} Items',
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
 
-                  // 5. TASK LIST CARDS
+                  // 6. TASK LIST CARDS
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _tasks.length,
+                    itemCount: filteredTasks.length,
                     itemBuilder: (context, index) {
-                      final task = _tasks[index];
+                      final task = filteredTasks[index];
                       final bool isDone = task['isDone'];
+                      final Color priorityColor = task['priorityColor'];
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
@@ -450,7 +505,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                             GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _tasks[index]['isDone'] = !isDone;
+                                  task['isDone'] = !isDone;
                                 });
                               },
                               child: AnimatedContainer(
@@ -477,14 +532,30 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    task['title'],
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDone ? Colors.grey : const Color(0xFF1E293B),
-                                      decoration: isDone ? TextDecoration.lineThrough : null,
-                                    ),
+                                  Row(
+                                    children: [
+                                      // Priority Indicator Dot
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: priorityColor,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          task['title'],
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDone ? Colors.grey : const Color(0xFF1E293B),
+                                            decoration: isDone ? TextDecoration.lineThrough : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
@@ -532,7 +603,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                                   icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
                                   onPressed: () {
                                     setState(() {
-                                      _tasks.removeAt(index);
+                                      _tasks.remove(task);
                                     });
                                   },
                                 ),
@@ -543,12 +614,52 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       );
                     },
                   ),
+                  const SizedBox(height: 16),
+
+                  // 7. FOCUS TIME SUMMARY MINI-WIDGET
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem('Total Focus', '4.5 hrs', Icons.timer_rounded),
+                        Container(height: 30, width: 1, color: Colors.grey.shade200),
+                        _buildStatItem('Completed', '$completedCount Tasks', Icons.task_alt_rounded),
+                        Container(height: 30, width: 1, color: Colors.grey.shade200),
+                        _buildStatItem('Efficiency', '92%', Icons.insights_rounded),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: const Color(0xFF1E5E2F)),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+        ),
+      ],
     );
   }
 }
