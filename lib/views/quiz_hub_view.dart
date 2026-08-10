@@ -439,13 +439,12 @@ class _QuizHubViewState extends State<QuizHubView> {
         const SizedBox(height: 16),
         Expanded(
           child: ReorderableListView(
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                if (newIndex > oldIndex) newIndex -= 1;
-                final item = _sequenceItems.removeAt(oldIndex);
-                _sequenceItems.insert(newIndex, item);
-              });
-            },
+           onReorderItem: (int oldIndex, int newIndex) {
+            setState(() {
+              final item = _sequenceItems.removeAt(oldIndex);
+               _sequenceItems.insert(newIndex, item);
+            });
+          },
             children: [
               for (int index = 0; index < _sequenceItems.length; index++)
                 Card(

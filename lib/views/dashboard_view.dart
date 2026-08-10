@@ -15,9 +15,7 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
-  int _activePageIndex = 0;
-  // Adjusted viewportFraction so more cards are previewed/visible
-  final PageController _pageController = PageController(viewportFraction: 0.32);
+ 
 
   final List<Map<String, dynamic>> _stats = const [
     {
@@ -140,67 +138,72 @@ class _DashboardViewState extends State<DashboardView> {
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.85, 
                   children: [
-                    _buildGradientCard(
-                      context,
-                      title: 'Study Planner',
-                      subtitle: 'Calendar & exams',
-                      icon: Icons.calendar_month_rounded,
-                      gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
-                      iconBgColor: const Color(0xFFE9D5FF),
-                      iconColor: const Color(0xFF9333EA),
-                      targetScreen: const StudyPlannerView(),
-                    ),
-                    _buildGradientCard(
-                      context,
-                      title: 'AI Tutor',
-                      subtitle: 'Chat & learn',
-                      icon: Icons.smart_toy_rounded,
-                      gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
-                      iconBgColor: const Color(0xFFE9D5FF),
-                      iconColor: const Color(0xFF9333EA),
-                      targetScreen: const AiTutorView(),
-                    ),
-                    _buildGradientCard(
-                      context,
-                      title: 'AI Study Hub',
-                      subtitle: 'Summaries & notes',
-                      icon: Icons.auto_awesome_rounded,
-                      gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
-                      iconBgColor: const Color(0xFFBAE6FD),
-                      iconColor: const Color(0xFF0284C7),
-                      targetScreen: const AiStudyHubView(),
-                    ),
-                    _buildGradientCard(
-                      context,
-                      title: 'Quiz & Flashcards',
-                      subtitle: 'Practice & review',
-                      icon: Icons.sports_esports_rounded,
-                      gradientColors: [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
-                      iconBgColor: const Color(0xFFBBF7D0),
-                      iconColor: const Color(0xFF15803D),
-                      targetScreen: const QuizHubView(),
-                    ),
-                    _buildGradientCard(
-                      context,
-                      title: 'Subject Reviewers',
-                      subtitle: 'Courses & topics',
-                      icon: Icons.menu_book_rounded,
-                      gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
-                      iconBgColor: const Color(0xFFBAE6FD),
-                      iconColor: const Color(0xFF0284C7),
-                      targetScreen: const SubjectReviewersView(),
-                    ),
-                    _buildGradientCard(
-                      context,
-                      title: 'Leaderboards',
-                      subtitle: 'Ranks & scores',
-                      icon: Icons.leaderboard_rounded,
-                      gradientColors: [const Color(0xFFFFFBEE), const Color(0xFFFFEDD5)],
-                      iconBgColor: const Color(0xFFFED7AA),
-                      iconColor: const Color(0xFFEA580C),
-                      targetScreen: const LeaderboardsView(),
-                    ),
-                  ],
+  // --- ROW 1 ---
+  _buildGradientCard(
+    context,
+    title: 'AI Study Hub',
+    subtitle: 'Summaries & notes',
+    icon: Icons.auto_awesome_rounded,
+    gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
+    iconBgColor: const Color(0xFFBAE6FD),
+    iconColor: const Color(0xFF0284C7),
+    targetScreen: const AiStudyHubView(),
+  ),
+  _buildGradientCard(
+    context,
+    title: 'Quiz & Flashcards',
+    subtitle: 'Practice & review',
+    icon: Icons.sports_esports_rounded,
+    gradientColors: [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
+    iconBgColor: const Color(0xFFBBF7D0),
+    iconColor: const Color(0xFF15803D),
+    targetScreen: const QuizHubView(),
+  ),
+
+  // --- ROW 2 ---
+  _buildGradientCard(
+    context,
+    title: 'AI Tutor',
+    subtitle: 'Chat & learn',
+    icon: Icons.smart_toy_rounded,
+    gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
+    iconBgColor: const Color(0xFFE9D5FF),
+    iconColor: const Color(0xFF9333EA),
+    targetScreen: const AiTutorView(),
+  ),
+  _buildGradientCard(
+    context,
+    title: 'Study Planner',
+    subtitle: 'Calendar & exams',
+    icon: Icons.calendar_month_rounded,
+    gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
+    iconBgColor: const Color(0xFFE9D5FF),
+    iconColor: const Color(0xFF9333EA),
+    targetScreen: const StudyPlannerView(),
+  ),
+
+  // --- ROW 3 ---
+  _buildGradientCard(
+    context,
+    title: 'Subject Reviewers',
+    subtitle: 'Courses & topics',
+    icon: Icons.menu_book_rounded,
+    gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
+    iconBgColor: const Color(0xFFBAE6FD),
+    iconColor: const Color(0xFF0284C7),
+    targetScreen: const SubjectReviewersView(),
+  ),
+  _buildGradientCard(
+    context,
+    title: 'Leaderboards',
+    subtitle: 'Ranks & scores',
+    icon: Icons.leaderboard_rounded,
+    gradientColors: [const Color(0xFFFFFBEE), const Color(0xFFFFEDD5)],
+    iconBgColor: const Color(0xFFFED7AA),
+    iconColor: const Color(0xFFEA580C),
+    targetScreen: const LeaderboardsView(),
+  ),
+],
                 ),
                 const SizedBox(height: 16),
               ],
@@ -270,24 +273,24 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // Swipeable Stats Carousel with subtle gradient cards
+  // Compact Horizontal Scrollable Stats List (Displays 5+ cards visible at once)
   Widget _buildStatsCarousel() {
     return Column(
       children: [
         SizedBox(
           height: 105,
-          child: PageView.builder(
-            controller: _pageController,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: _stats.length,
-            onPageChanged: (index) {
-              setState(() {
-                _activePageIndex = index;
-              });
-            },
             itemBuilder: (context, index) {
               final item = _stats[index];
               return Container(
-                margin: const EdgeInsets.only(right: 10),
-                padding: const EdgeInsets.all(10),
+                width: 112, // Fixed compact width para magkasya ang 5 cards sabay-sabay!
+                margin: EdgeInsets.only(
+                  right: index == _stats.length - 1 ? 0 : 10,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: const LinearGradient(
@@ -298,14 +301,15 @@ class _DashboardViewState extends State<DashboardView> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Badge Tag at Top
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -314,26 +318,40 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                       child: Text(
                         item['tag'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.bold,
                           color: item['tagTextColor'],
                         ),
                       ),
                     ),
+                    // Value & Icon at Middle
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(item['icon'], color: item['iconColor'], size: 16),
                         const SizedBox(width: 4),
-                        Text(
-                          item['value'],
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                        Flexible(
+                          child: Text(
+                            item['value'],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
                         ),
                       ],
                     ),
+                    // Label at Bottom
                     Text(
                       item['label'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -343,17 +361,17 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ),
         const SizedBox(height: 8),
+        // Dots indicator
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             _stats.length,
-            (index) => AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+            (index) => Container(
               margin: const EdgeInsets.symmetric(horizontal: 2),
               height: 4,
-              width: _activePageIndex == index ? 16 : 4,
+              width: index == 0 ? 16 : 4,
               decoration: BoxDecoration(
-                color: _activePageIndex == index ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+                color: index == 0 ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
