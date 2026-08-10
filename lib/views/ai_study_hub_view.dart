@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/constants.dart';
+
+import 'quiz_hub_view.dart';
 
 class AiStudyHubView extends StatefulWidget {
   const AiStudyHubView({super.key});
@@ -9,306 +10,499 @@ class AiStudyHubView extends StatefulWidget {
 }
 
 class _AiStudyHubViewState extends State<AiStudyHubView> {
-  // Dynamic list para sa Irreg students (pwedeng madagdagan)
-  List<String> subjects = [
-    'IT 101 - Data Structures',
-    'IT 102 - Web Systems',
-    'IT 103 - OOP',
-    'IT 104 - DBMS',
+  String _selectedSubject = 'IT Spec 2';
+  final TextEditingController _youtubeController = TextEditingController();
+  int _selectedActionIndex = 0; // 0: Quiz, 1: Summary, 2: Flashcards
+
+  final List<String> _subjects = [
     'IT Spec 2',
-    '+ Add Custom Subject (Irreg)',
+    'IT 104 - DBMS',
+    'Data Structures & Algorithms',
+    'Web Systems & Tech',
   ];
 
-  String selectedSubject = 'IT Spec 2';
-  final TextEditingController _ytController = TextEditingController();
-
-  // Helper dialog para sa Custom Subject (Irreg Students)
-  void _showAddSubjectDialog() {
-    TextEditingController customSubjectController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Custom Subject'),
-        content: TextField(
-          controller: customSubjectController,
-          decoration: const InputDecoration(
-            hintText: 'e.g., IT 109 - Mobile Dev',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
-            onPressed: () {
-              if (customSubjectController.text.trim().isNotEmpty) {
-                setState(() {
-                  String newSub = customSubjectController.text.trim();
-                  subjects.insert(subjects.length - 1, newSub);
-                  selectedSubject = newSub;
-                });
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Content Mismatch Dialog with Best Practice "Override" Button
-  void _showMismatchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircleAvatar(
-              radius: 30,
-              backgroundColor: Color(0xFFFFEBEE),
-              child: Icon(Icons.cancel_outlined, color: Colors.red, size: 36),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Content Mismatch',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: const Text(
-                'The uploaded material appears unrelated to your subject. Please check alignment to maintain study accuracy.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  Text('Expected: $selectedSubject', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  const Text('Detected: Biology / Life Sciences', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Try Again', style: TextStyle(color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Processing document with user override...')),
-                  );
-                },
-                child: const Text('Proceed Anyway', style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _youtubeController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
       appBar: AppBar(
-        title: const Text('AI Study Hub', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.spcbaGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF1E5E2F),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'AI Study Hub',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Upload & Summarize Reviewers 📄✨',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'Drop lecture notes or paste video links to generate instant AI materials.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-
-            // Subject Tag Dropdown (Irreg-Friendly)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  const Text('Tag Subject: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Expanded(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: selectedSubject,
-                        isExpanded: true,
-                        items: subjects.map((String sub) {
-                          return DropdownMenuItem<String>(
-                            value: sub,
-                            child: Text(
-                              sub,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: sub.contains('Custom') ? AppColors.spcbaGreen : Colors.black,
-                                fontWeight: sub.contains('Custom') ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue == '+ Add Custom Subject (Irreg)') {
-                            _showAddSubjectDialog();
-                          } else if (newValue != null) {
-                            setState(() {
-                              selectedSubject = newValue;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Source 1: File Upload Box
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.spcbaGreen.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.spcbaGreen.withValues(alpha: 0.2)),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.cloud_upload_outlined, size: 40, color: AppColors.spcbaGreen),
-                  const SizedBox(height: 8),
-                  const Text('Import PDF Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const Text('Supports PDF, DOCX, PPTX (Max 25MB)', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.spcbaGreen),
-                    onPressed: _showMismatchDialog, // Demo: Click to trigger Mismatch Dialog test
-                    icon: const Icon(Icons.folder_open, color: Colors.white, size: 16),
-                    label: const Text('Browse File (Test Mismatch)', style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Source 2: YouTube Link Box
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  // 1. HEADER TITLE & SUBTITLE
+                  const Text(
+                    'Upload & Generate AI Materials 📄✨',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Upload lecture notes, PDFs, or paste YouTube video links to create instant quizzes and summaries.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. SUBJECT SELECTION DROPDOWN
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.bookmark_border_rounded, color: Color(0xFF1E5E2F), size: 20),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Tag Subject: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedSubject,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E5E2F),
+                              ),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedSubject = newValue;
+                                  });
+                                }
+                              },
+                              items: _subjects.map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 3. DROPZONE / UPLOAD FILE BOX
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE8F5E9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 32,
+                            color: Color(0xFF1E5E2F),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Drag & Drop or Import Notes',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Supports PDF, DOCX, PPTX (Max 25MB)',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 14),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Opening file picker...')),
+                            );
+                          },
+                          icon: const Icon(Icons.folder_open_rounded, size: 16),
+                          label: const Text('Browse Files'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E5E2F),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 4. YOUTUBE LINK INPUT FIELD
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.play_circle_fill_rounded, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Paste YouTube Video Link',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 42,
+                                child: TextField(
+                                  controller: _youtubeController,
+                                  style: const TextStyle(fontSize: 12),
+                                  decoration: InputDecoration(
+                                    hintText: 'https://youtube.com/watch?v=...',
+                                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    filled: true,
+                                    fillColor: const Color(0xFFF8FAFC),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                if (_youtubeController.text.isNotEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Processing video transcript...')),
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E5E2F),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text('Process', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 5. QUICK AI ACTIONS (3 INTERACTIVE CARDS)
+                  const Text(
+                    'Quick AI Actions',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      Icon(Icons.play_circle_fill, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text('Paste YouTube Video Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Expanded(
+                        child: _buildAiActionCard(
+                          index: 0,
+                          title: 'Generate Quiz',
+                          icon: Icons.auto_awesome_rounded,
+                          accentColor: Colors.amber.shade800,
+                          bgColor: const Color(0xFFFFF8E1),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildAiActionCard(
+                          index: 1,
+                          title: 'Summarize',
+                          icon: Icons.article_rounded,
+                          accentColor: Colors.blue.shade700,
+                          bgColor: const Color(0xFFE3F2FD),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildAiActionCard(
+                          index: 2,
+                          title: 'Flashcards',
+                          icon: Icons.style_rounded,
+                          accentColor: Colors.purple.shade700,
+                          bgColor: const Color(0xFFF3E5F5),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _ytController,
-                    decoration: const InputDecoration(
-                      hintText: 'https://youtube.com/watch?v=...',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
+                  const SizedBox(height: 24),
+
+                  // 6. YOUR STUDY DOCUMENTS LIST
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        'Your Study Documents',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      Text(
+                        'View All',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E5E2F),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        if (_ytController.text.isNotEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Analyzing YouTube Transcript...')),
-                          );
-                        }
-                      },
-                      child: const Text('Process Video Link', style: TextStyle(fontSize: 12)),
-                    ),
+                  const SizedBox(height: 10),
+
+                  _buildDocumentCard(
+                    title: 'Chapter 1 - Intro to Flutter.pdf',
+                    subtitle: 'IT Spec 2 • 2.4 MB',
+                    fileType: 'pdf',
+                  ),
+                  _buildDocumentCard(
+                    title: 'Database Normalization Notes.docx',
+                    subtitle: 'IT 104 - DBMS • 1.1 MB',
+                    fileType: 'doc',
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+          ),
+        ),
+      ),
+    );
+  }
 
-            const Text('Your Study Documents', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            const SizedBox(height: 10),
+  // --- WIDGET HELPERS ---
 
-            // Document Cards List
-            _buildDocCard('Chapter 1 - Intro to Flutter.pdf', 'IT Spec 2 • 2.4 MB'),
-            _buildDocCard('Database Normalization Notes.docx', 'IT 104 - DBMS • 1.1 MB'),
+  Widget _buildAiActionCard({
+    required int index,
+    required String title,
+    required IconData icon,
+    required Color accentColor,
+    required Color bgColor,
+  }) {
+    final bool isSelected = _selectedActionIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedActionIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? accentColor : bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? accentColor : accentColor.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected ? Colors.white : accentColor,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : accentColor,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDocCard(String title, String subtitle) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.spcbaGreen,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  Widget _buildDocumentCard({
+    required String title,
+    required String subtitle,
+    required String fileType,
+  }) {
+    final isPdf = fileType == 'pdf';
+    final iconColor = isPdf ? Colors.red.shade700 : Colors.blue.shade700;
+    final iconBg = isPdf ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Generating AI Summary for $title...')),
-            );
-          },
-          child: const Text('Summarize ✨', style: TextStyle(color: Colors.white, fontSize: 11)),
-        ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isPdf ? Icons.picture_as_pdf_rounded : Icons.description_rounded,
+              color: iconColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Action Buttons per File
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF1E5E2F), size: 18),
+                tooltip: 'Summarize with AI',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Generating AI Summary for $title...')),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.sports_esports_rounded, color: Color(0xFF1976D2), size: 18),
+                tooltip: 'Take Quiz',
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView()));
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
