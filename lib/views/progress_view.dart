@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'quiz_hub_view.dart';
+
 class ProgressView extends StatefulWidget {
   const ProgressView({super.key});
 
@@ -10,97 +12,106 @@ class ProgressView extends StatefulWidget {
 class _ProgressViewState extends State<ProgressView> {
   int _selectedTabIndex = 0;
 
-  final List<String> _tabs = ['Overview', 'History', 'AI Tutor', 'Calendar'];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F0),
+      backgroundColor: const Color(0xFFF4F6F3),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        centerTitle: true,
         title: const Text(
           'Analytics & Progress',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+            tooltip: 'Export Progress',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Exporting report as PDF...'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. Top Green Banner with Donut Ring Progress
+            // 🌟 1. PREMIUM HERO HEADER
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              padding: const EdgeInsets.only(bottom: 24, top: 12),
               decoration: const BoxDecoration(
-                color: Color(0xFF1E5E2F),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1E5E2F), Color(0xFF0F3819)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
               ),
-              child: Center(
-                child: Column(
-                  children: [
-                    // Donut Ring Chart Centerpiece
-                    SizedBox(
-                      width: 110,
-                      height: 110,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 110,
-                            height: 110,
-                            child: CircularProgressIndicator(
-                              value: 0.29, // +29% Improvement
-                              strokeWidth: 12,
-                              backgroundColor: Colors.white24,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFC107)),
-                              strokeCap: StrokeCap.round,
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        height: 110,
+                        child: CircularProgressIndicator(
+                          value: 0.84,
+                          strokeWidth: 9,
+                          backgroundColor: Colors.white12,
+                          color: const Color(0xFFFFC107), // Gold accent
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text(
+                            '+29%',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                '+29%',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Improvement',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Improvement',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Average Improvement Across All Subjects',
+                    style: TextStyle(
+                      color: Color(0xFFD0E3D3),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'Average Improvement Across All Subjects',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
-            // 2. Main Analytics Content Body
+            // 📍 MAIN CONTENT CONTAINER
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 850),
@@ -109,97 +120,167 @@ class _ProgressViewState extends State<ProgressView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Filter Category Chips
+                      // 🎛️ 2. FILTER TABS (SEGMENT CONTROL)
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: List.generate(_tabs.length, (index) {
-                            final isSelected = _selectedTabIndex == index;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ChoiceChip(
-                                label: Text(_tabs[index]),
-                                selected: isSelected,
-                                selectedColor: const Color(0xFF1E5E2F),
-                                backgroundColor: const Color(0xFFE5EDE4),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF1E293B),
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() {
-                                      _selectedTabIndex = index;
-                                    });
-                                  }
-                                },
-                              ),
-                            );
-                          }),
+                          children: [
+                            _buildTabPill('Overview', 0, Icons.insert_chart_outlined_rounded),
+                            _buildTabPill('History', 1, Icons.history_rounded),
+                            _buildTabPill('AI Insights', 2, Icons.auto_awesome_rounded),
+                            _buildTabPill('Calendar', 3, Icons.calendar_today_rounded),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // Section 1: Pre-test vs Post-test Metrics
-                      const Text(
-                        'Pre-test vs Post-test',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+                      // 💡 3. AI SMART RECOMMENDATION CARD
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF90CAF9)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1976D2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.psychology_rounded, color: Colors.white, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'AI Study Recommendation',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Color(0xFF0D47A1),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Object-Oriented Programming has lower gains (+21%). Take a 5-min practice quiz to boost it!',
+                                    style: TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView()));
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1976D2),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text('Review', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+
+                      // 📊 4. STAT SUMMARY CARDS (PRE VS POST)
                       Row(
                         children: [
-                          _buildSummaryMetricCard('Pre-test', '52%', 'Before app', const Color(0xFFFFEBEE), Colors.red.shade700),
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Pre-test',
+                              value: '52%',
+                              subtitle: 'Initial score',
+                              bgColor: const Color(0xFFFFF0F0),
+                              valueColor: const Color(0xFFD32F2F),
+                              borderColor: const Color(0xFFFFCDD2),
+                            ),
+                          ),
                           const SizedBox(width: 10),
-                          _buildSummaryMetricCard('Post-test', '84%', 'After app', const Color(0xFFE8F5E9), const Color(0xFF1E5E2F)),
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Post-test',
+                              value: '84%',
+                              subtitle: 'Current avg',
+                              bgColor: const Color(0xFFE8F5E9),
+                              valueColor: const Color(0xFF2E7D32),
+                              borderColor: const Color(0xFFC8E6C9),
+                            ),
+                          ),
                           const SizedBox(width: 10),
-                          _buildSummaryMetricCard('Gained', '+32%', 'Improvement', const Color(0xFFE8F5E9), const Color(0xFF1E5E2F)),
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Gained',
+                              value: '+32%',
+                              subtitle: 'Total growth',
+                              bgColor: const Color(0xFFFFF8E1),
+                              valueColor: const Color(0xFFF57F17),
+                              borderColor: const Color(0xFFFFECB3),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
 
-                      // Section 2: Pre-test vs Post-test Comparison Bars per Subject
-                      const Text(
-                        'Pre-test vs Post-test Comparison',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
-                        ),
+                      // 📈 5. SUBJECT COMPARISON BARS
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'Pre-test vs Post-test Comparison',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          Text(
+                            'Growth',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
-                      _buildSubjectComparisonCard(
-                        'Data Structures & Algorithms',
-                        preTestScore: 0.65,
-                        postTestScore: 0.88,
-                        preTestText: '65%',
-                        postTestText: '88%',
-                        gainText: '+35%',
+
+                      _buildSubjectProgressCard(
+                        subjectName: 'Data Structures & Algorithms',
+                        preScore: 65,
+                        postScore: 88,
+                        growth: '+35%',
+                        isTopPerformer: true,
                       ),
-                      _buildSubjectComparisonCard(
-                        'Web Systems & Technologies',
-                        preTestScore: 0.57,
-                        postTestScore: 0.79,
-                        preTestText: '57%',
-                        postTestText: '79%',
-                        gainText: '+36%',
+                      _buildSubjectProgressCard(
+                        subjectName: 'Web Systems & Technologies',
+                        preScore: 57,
+                        postScore: 79,
+                        growth: '+36%',
                       ),
-                      _buildSubjectComparisonCard(
-                        'Object-Oriented Programming',
-                        preTestScore: 0.70,
-                        postTestScore: 0.85,
-                        preTestText: '70%',
-                        postTestText: '85%',
-                        gainText: '+21%',
+                      _buildSubjectProgressCard(
+                        subjectName: 'Object-Oriented Programming',
+                        preScore: 70,
+                        postScore: 85,
+                        growth: '+21%',
+                        needsFocus: true,
                       ),
+
                       const SizedBox(height: 24),
 
-                      // Section 3: Weekly Activity Metrics
+                      // 📅 6. WEEKLY STATS ROW
                       const Text(
-                        'This week',
+                        'This week activity',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -207,16 +288,28 @@ class _ProgressViewState extends State<ProgressView> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildWeeklyStatBox('Quizzes', '14'),
-                          const SizedBox(width: 8),
-                          _buildWeeklyStatBox('Avg score', '78%'),
-                          const SizedBox(width: 8),
-                          _buildWeeklyStatBox('XP earned', '420'),
-                          const SizedBox(width: 8),
-                          _buildWeeklyStatBox('Streak', '5d'),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildMiniStat('Quizzes', '14', Icons.assignment_turned_in_rounded),
+                            _buildMiniStat('Avg Score', '78%', Icons.pie_chart_outline_rounded),
+                            _buildMiniStat('XP Earned', '420', Icons.stars_rounded),
+                            _buildMiniStat('Streak', '5d', Icons.local_fire_department_rounded),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -229,30 +322,41 @@ class _ProgressViewState extends State<ProgressView> {
     );
   }
 
-  // Summary Cards (Pre-test / Post-test / Gain)
-  Widget _buildSummaryMetricCard(String title, String value, String subtitle, Color bgColor, Color textColor) {
-    return Expanded(
+  // --- WIDGET HELPER METHODS ---
+
+  Widget _buildTabPill(String label, int index, IconData icon) {
+    final bool isSelected = _selectedTabIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedTabIndex = index;
+        });
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? const Color(0xFF1E5E2F) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+          ),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Text(
-              title,
-              style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w600),
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? Colors.white : Colors.grey.shade700,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(width: 6),
             Text(
-              value,
-              style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 10),
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+              ),
             ),
           ],
         ),
@@ -260,22 +364,64 @@ class _ProgressViewState extends State<ProgressView> {
     );
   }
 
-  // Subject Progress Bars Card
-  Widget _buildSubjectComparisonCard(
-    String title, {
-    required double preTestScore,
-    required double postTestScore,
-    required String preTestText,
-    required String postTestText,
-    required String gainText,
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color bgColor,
+    required Color valueColor,
+    required Color borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: valueColor.withValues(alpha: 0.8)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: valueColor),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectProgressCard({
+    required String subjectName,
+    required int preScore,
+    required int postScore,
+    required String growth,
+    bool isTopPerformer = false,
+    bool needsFocus = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8ECE5),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.03)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,95 +430,83 @@ class _ProgressViewState extends State<ProgressView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF1E293B),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.show_chart_rounded, size: 16, color: Color(0xFF1E5E2F)),
-                  const SizedBox(width: 4),
-                  Text(
-                    gainText,
-                    style: const TextStyle(
-                      color: Color(0xFF1E5E2F),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        subjectName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                    if (needsFocus) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Text(
+                          'Review Soon',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange.shade800),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Text(
+                '📈 $growth',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Pre-test Progress Bar
+          // Bar for Pre-test
           Row(
             children: [
-              const SizedBox(
-                width: 65,
-                child: Text('Pre-test', style: TextStyle(fontSize: 11, color: Colors.grey)),
-              ),
+              const SizedBox(width: 55, child: Text('Pre-test', style: TextStyle(fontSize: 10, color: Colors.grey))),
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: preTestScore,
-                    backgroundColor: Colors.grey.shade300,
+                    value: preScore / 100,
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade200,
                     color: Colors.grey.shade500,
-                    minHeight: 8,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 32,
-                child: Text(
-                  preTestText,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-                ),
-              ),
+              const SizedBox(width: 8),
+              Text('$preScore%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
-          // Post-test Progress Bar
+          // Bar for Post-test
           Row(
             children: [
-              const SizedBox(
-                width: 65,
-                child: Text(
-                  'Post-test',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
-                ),
-              ),
+              const SizedBox(width: 55, child: Text('Post-test', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)))),
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: postTestScore,
-                    backgroundColor: Colors.grey.shade300,
-                    color: const Color(0xFF1E5E2F),
+                    value: postScore / 100,
                     minHeight: 8,
+                    backgroundColor: const Color(0xFFE8F5E9),
+                    color: const Color(0xFF1E5E2F),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 32,
-                child: Text(
-                  postTestText,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF1E5E2F), fontWeight: FontWeight.bold),
-                ),
-              ),
+              const SizedBox(width: 8),
+              Text('$postScore%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F))),
             ],
           ),
         ],
@@ -380,33 +514,20 @@ class _ProgressViewState extends State<ProgressView> {
     );
   }
 
-  // Bottom Weekly Stat Boxes
-  Widget _buildWeeklyStatBox(String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8ECE5),
-          borderRadius: BorderRadius.circular(14),
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF1E5E2F)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
         ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 10),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
         ),
-      ),
+      ],
     );
   }
 }
