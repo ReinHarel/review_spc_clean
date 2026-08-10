@@ -26,6 +26,31 @@ class DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<DashboardView> {
   int _currentNavIndex = 0;
+  
+  // Controller para sa Horizontal Scroll at Indicator Dots
+  final ScrollController _scrollController = ScrollController();
+  int _activeCardIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      // Calculator para malaman kung anong card ang nasa screen
+      final double offset = _scrollController.offset;
+      final int newIndex = (offset / 140).round().clamp(0, 5);
+      if (newIndex != _activeCardIndex) {
+        setState(() {
+          _activeCardIndex = newIndex;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +163,166 @@ class _DashboardViewState extends State<DashboardView> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // 📲 INTERACTIVE HORIZONTAL SCROLL CARDS
+                  SizedBox(
+                    height: 105,
+                    child: ListView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        _buildInteractiveStatCard(
+                          value: '🏆 1,250',
+                          label: 'XP Points',
+                          trend: '+50 today',
+                          trendColor: Colors.green.shade700,
+                          valueColor: const Color(0xFF1E5E2F),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardsView())),
+                        ),
+                        _buildInteractiveStatCard(
+                          value: '🔥 5 Days',
+                          label: 'Study Streak',
+                          trend: 'Best Record!',
+                          trendColor: Colors.orange.shade800,
+                          valueColor: Colors.orange.shade800,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AchievementsView())),
+                        ),
+                        _buildInteractiveStatCard(
+                          value: '📈 82%',
+                          label: 'Avg Score',
+                          trend: '▲ +3%',
+                          trendColor: Colors.blue.shade700,
+                          valueColor: Colors.blue.shade700,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView())),
+                        ),
+                        _buildInteractiveStatCard(
+                          value: '📚 4/5',
+                          label: 'Quizzes Done',
+                          trend: '1 left today',
+                          trendColor: Colors.purple.shade700,
+                          valueColor: Colors.purple.shade700,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView())),
+                        ),
+                        _buildInteractiveStatCard(
+                          value: '⏱️ 1.5 hrs',
+                          label: 'Time Spent',
+                          trend: 'Target: 2 hrs',
+                          trendColor: Colors.teal.shade700,
+                          valueColor: Colors.teal.shade700,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView())),
+                        ),
+                        _buildInteractiveStatCard(
+                          value: '🎯 12',
+                          label: 'Topics Mastered',
+                          trend: '▲ +2 this week',
+                          trendColor: Colors.amber.shade900,
+                          valueColor: Colors.amber.shade900,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubjectReviewersView())),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // 🔘 PAGE / SCROLL INDICATOR DOTS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(6, (index) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: _activeCardIndex == index ? 16 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: _activeCardIndex == index
+                              ? const Color(0xFF1E5E2F)
+                              : Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Continue Learning Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E5E2F),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'CONTINUE LEARNING',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB5E2C5),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Accounting 101: Balance Sheets',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Chapter 3 • 80% completed',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SubjectReviewersView()),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF1E5E2F),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Resume',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 22),
 
                   const Text(
@@ -222,7 +407,6 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       ),
 
-      // Inayos na 3-Tab Bottom Bar (Home, Analytics, Leaderboards)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentNavIndex,
         selectedItemColor: const Color(0xFF1E5E2F),
@@ -257,6 +441,80 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // 💡 Custom Widget para sa Interactive Card na may Micro Trend Badge
+  Widget _buildInteractiveStatCard({
+    required String value,
+    required String label,
+    required String trend,
+    required Color trendColor,
+    required Color valueColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: 135,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Micro Trend / Indicator Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: trendColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    trend,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: trendColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: valueColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildModuleCard({
     required String title,
     required String subtitle,
@@ -270,7 +528,7 @@ class _DashboardViewState extends State<DashboardView> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.03)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
       ),
       child: Material(
         color: Colors.transparent,
