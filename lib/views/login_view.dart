@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
-import 'dashboard_view.dart';
+import 'navigation_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -122,10 +122,7 @@ class _LoginViewState extends State<LoginView> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => DashboardView(
-                                userName: passedName,
-                                studentStatus: 'Regular',
-                              ),
+                              builder: (context) => const MainNavigationView(),
                             ),
                           );
                         },

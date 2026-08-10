@@ -244,7 +244,7 @@ class _AiTutorViewState extends State<AiTutorView> {
                       boxShadow: [
                         BoxShadow(
                           color: (_isListening ? Colors.red : const Color(0xFF1E5E2F))
-                              .withOpacity(0.3),
+                              .withValues(alpha:0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -270,7 +270,7 @@ class _AiTutorViewState extends State<AiTutorView> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1E5E2F).withOpacity(0.3),
+                          color: const Color(0xFF1E5E2F).withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),

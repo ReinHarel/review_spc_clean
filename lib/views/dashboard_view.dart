@@ -1,461 +1,447 @@
 import 'package:flutter/material.dart';
-
-import 'achievements_view.dart';
-import 'ai_study_hub_view.dart';
+import 'study_planner_view.dart';
 import 'ai_tutor_view.dart';
+import 'ai_study_hub_view.dart';
+import 'quiz_hub_view.dart';
+import 'subject_reviewers_view.dart';
 import 'leaderboards_view.dart';
 import 'profile_view.dart';
-import 'progress_view.dart';
-import 'quiz_hub_view.dart';
-import 'study_planner_view.dart';
-import 'subject_reviewers_view.dart';
 
 class DashboardView extends StatefulWidget {
-  final String? userName;
-  final String? studentStatus;
-
-  const DashboardView({
-    super.key,
-    this.userName,
-    this.studentStatus,
-  });
+  const DashboardView({super.key});
 
   @override
   State<DashboardView> createState() => _DashboardViewState();
 }
 
 class _DashboardViewState extends State<DashboardView> {
-  int _currentNavIndex = 0;
-  
-  // Controller para sa Horizontal Scroll at Indicator Dots
-  final ScrollController _scrollController = ScrollController();
-  int _activeCardIndex = 0;
+  int _activePageIndex = 0;
+  // Adjusted viewportFraction so more cards are previewed/visible
+  final PageController _pageController = PageController(viewportFraction: 0.32);
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      // Calculator para malaman kung anong card ang nasa screen
-      final double offset = _scrollController.offset;
-      final int newIndex = (offset / 140).round().clamp(0, 5);
-      if (newIndex != _activeCardIndex) {
-        setState(() {
-          _activeCardIndex = newIndex;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  final List<Map<String, dynamic>> _stats = const [
+    {
+      'tag': '+50 today',
+      'tagColor': Color(0xFFDCFCE7),
+      'tagTextColor': Color(0xFF166534),
+      'icon': Icons.emoji_events_rounded,
+      'iconColor': Colors.amber,
+      'value': '1,250',
+      'label': 'XP Points',
+    },
+    {
+      'tag': 'Best Record!',
+      'tagColor': Color(0xFFFFEDD5),
+      'tagTextColor': Color(0xFFC2410C),
+      'icon': Icons.local_fire_department_rounded,
+      'iconColor': Colors.orangeAccent,
+      'value': '5 Days',
+      'label': 'Study Streak',
+    },
+    {
+      'tag': '▲ +3%',
+      'tagColor': Color(0xFFDBEAFE),
+      'tagTextColor': Color(0xFF1E40AF),
+      'icon': Icons.show_chart_rounded,
+      'iconColor': Colors.redAccent,
+      'value': '82%',
+      'label': 'Avg Score',
+    },
+    {
+      'tag': '1 left today',
+      'tagColor': Color(0xFFF3E8FF),
+      'tagTextColor': Color(0xFF6B21A8),
+      'icon': Icons.menu_book_rounded,
+      'iconColor': Colors.purple,
+      'value': '4/5',
+      'label': 'Quizzes Done',
+    },
+    {
+      'tag': 'Target: 2 hrs',
+      'tagColor': Color(0xFFE0F2FE),
+      'tagTextColor': Color(0xFF0369A1),
+      'icon': Icons.timer_rounded,
+      'iconColor': Colors.blueGrey,
+      'value': '1.5 hrs',
+      'label': 'Time Spent',
+    },
+    {
+      'tag': '▲ +2 this wk',
+      'tagColor': Color(0xFFFFE4E6),
+      'tagTextColor': Color(0xFF9F1239),
+      'icon': Icons.track_changes_rounded,
+      'iconColor': Colors.red,
+      'value': '12',
+      'label': 'Topics Mastered',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final displayName = widget.userName ?? 'Rein';
-    final displayStatus = widget.studentStatus ?? 'Regular';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F0),
+      backgroundColor: const Color(0xFFF4F6F3),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
         centerTitle: false,
         title: const Text(
           'ReviewSPC Dashboard',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 14.0),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileView()),
-                );
-              },
-              child: const Tooltip(
-                message: 'Profile & Settings',
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFFE2E8F0),
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: Color(0xFF1E5E2F),
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.white, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileView()),
+              );
+            },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 850),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Banner Header
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5EDE4),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFD3E2CE)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome back, $displayName! 👋',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Let's conquer your study goals today.",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E5E2F),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle_outline, color: Colors.white, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                displayStatus,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. WELCOME BANNER WITH GRADIENT
+                _buildWelcomeBanner(),
+                const SizedBox(height: 14),
+
+                // 2. HORIZONTAL STATS CAROUSEL WITH GRADIENT CARDS
+                _buildStatsCarousel(),
+                const SizedBox(height: 16),
+
+                // 3. CONTINUE LEARNING CARD WITH GRADIENT
+                _buildContinueLearningCard(),
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Study & Review Modules',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
                   ),
-                  const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 12),
 
-                  // 📲 INTERACTIVE HORIZONTAL SCROLL CARDS
-                  SizedBox(
-                    height: 105,
-                    child: ListView(
-                      controller: _scrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        _buildInteractiveStatCard(
-                          value: '🏆 1,250',
-                          label: 'XP Points',
-                          trend: '+50 today',
-                          trendColor: Colors.green.shade700,
-                          valueColor: const Color(0xFF1E5E2F),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardsView())),
-                        ),
-                        _buildInteractiveStatCard(
-                          value: '🔥 5 Days',
-                          label: 'Study Streak',
-                          trend: 'Best Record!',
-                          trendColor: Colors.orange.shade800,
-                          valueColor: Colors.orange.shade800,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AchievementsView())),
-                        ),
-                        _buildInteractiveStatCard(
-                          value: '📈 82%',
-                          label: 'Avg Score',
-                          trend: '▲ +3%',
-                          trendColor: Colors.blue.shade700,
-                          valueColor: Colors.blue.shade700,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView())),
-                        ),
-                        _buildInteractiveStatCard(
-                          value: '📚 4/5',
-                          label: 'Quizzes Done',
-                          trend: '1 left today',
-                          trendColor: Colors.purple.shade700,
-                          valueColor: Colors.purple.shade700,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView())),
-                        ),
-                        _buildInteractiveStatCard(
-                          value: '⏱️ 1.5 hrs',
-                          label: 'Time Spent',
-                          trend: 'Target: 2 hrs',
-                          trendColor: Colors.teal.shade700,
-                          valueColor: Colors.teal.shade700,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView())),
-                        ),
-                        _buildInteractiveStatCard(
-                          value: '🎯 12',
-                          label: 'Topics Mastered',
-                          trend: '▲ +2 this week',
-                          trendColor: Colors.amber.shade900,
-                          valueColor: Colors.amber.shade900,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubjectReviewersView())),
-                        ),
-                      ],
+                // 4. COMPACT 2-COLUMN GRID (childAspectRatio set to 1.85 for slick height)
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.85, 
+                  children: [
+                    _buildGradientCard(
+                      context,
+                      title: 'Study Planner',
+                      subtitle: 'Calendar & exams',
+                      icon: Icons.calendar_month_rounded,
+                      gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
+                      iconBgColor: const Color(0xFFE9D5FF),
+                      iconColor: const Color(0xFF9333EA),
+                      targetScreen: const StudyPlannerView(),
                     ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // 🔘 PAGE / SCROLL INDICATOR DOTS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(6, (index) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: _activeCardIndex == index ? 16 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: _activeCardIndex == index
-                              ? const Color(0xFF1E5E2F)
-                              : Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Continue Learning Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E5E2F),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                    _buildGradientCard(
+                      context,
+                      title: 'AI Tutor',
+                      subtitle: 'Chat & learn',
+                      icon: Icons.smart_toy_rounded,
+                      gradientColors: [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF)],
+                      iconBgColor: const Color(0xFFE9D5FF),
+                      iconColor: const Color(0xFF9333EA),
+                      targetScreen: const AiTutorView(),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'CONTINUE LEARNING',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFB5E2C5),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Accounting 101: Balance Sheets',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Chapter 3 • 80% completed',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SubjectReviewersView()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF1E5E2F),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Resume',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                        ),
-                      ],
+                    _buildGradientCard(
+                      context,
+                      title: 'AI Study Hub',
+                      subtitle: 'Summaries & notes',
+                      icon: Icons.auto_awesome_rounded,
+                      gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
+                      iconBgColor: const Color(0xFFBAE6FD),
+                      iconColor: const Color(0xFF0284C7),
+                      targetScreen: const AiStudyHubView(),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-
-                  const Text(
-                    'Study & Review Modules',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
+                    _buildGradientCard(
+                      context,
+                      title: 'Quiz & Flashcards',
+                      subtitle: 'Practice & review',
+                      icon: Icons.sports_esports_rounded,
+                      gradientColors: [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
+                      iconBgColor: const Color(0xFFBBF7D0),
+                      iconColor: const Color(0xFF15803D),
+                      targetScreen: const QuizHubView(),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Grid ng Action Cards
-                  GridView.count(
-                    crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: MediaQuery.of(context).size.width > 600 ? 1.4 : 1.1,
-                    children: [
-                      _buildModuleCard(
-                        title: 'AI Study Hub',
-                        subtitle: 'Upload PDF / photos',
-                        icon: Icons.auto_awesome_rounded,
-                        iconColor: const Color(0xFF1E88E5),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFD2E3D0),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiStudyHubView())),
-                      ),
-                      _buildModuleCard(
-                        title: 'Quiz & Flashcards',
-                        subtitle: 'Train your brain',
-                        icon: Icons.sports_esports_rounded,
-                        iconColor: const Color(0xFF2E7D32),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFD2E3D0),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizHubView())),
-                      ),
-                      _buildModuleCard(
-                        title: 'Study Planner',
-                        subtitle: 'Calendar & exams',
-                        icon: Icons.calendar_month_rounded,
-                        iconColor: const Color(0xFF5E35B1),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFDDD2E8),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyPlannerView())),
-                      ),
-                      _buildModuleCard(
-                        title: 'AI Tutor',
-                        subtitle: 'Chat & learn',
-                        icon: Icons.smart_toy_rounded,
-                        iconColor: const Color(0xFF8E24AA),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFE7D0E8),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiTutorView())),
-                      ),
-                      _buildModuleCard(
-                        title: 'Achievements',
-                        subtitle: 'Badges & rewards',
-                        icon: Icons.military_tech_rounded,
-                        iconColor: const Color(0xFFF57C00),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFFCE4EC),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AchievementsView())),
-                      ),
-                      _buildModuleCard(
-                        title: 'Subject Reviewers',
-                        subtitle: 'Courses & topics',
-                        icon: Icons.menu_book_rounded,
-                        iconColor: const Color(0xFF0288D1),
-                        bgColor: const Color(0xFFE8ECE5),
-                        iconBg: const Color(0xFFD0E7F5),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubjectReviewersView())),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    _buildGradientCard(
+                      context,
+                      title: 'Subject Reviewers',
+                      subtitle: 'Courses & topics',
+                      icon: Icons.menu_book_rounded,
+                      gradientColors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
+                      iconBgColor: const Color(0xFFBAE6FD),
+                      iconColor: const Color(0xFF0284C7),
+                      targetScreen: const SubjectReviewersView(),
+                    ),
+                    _buildGradientCard(
+                      context,
+                      title: 'Leaderboards',
+                      subtitle: 'Ranks & scores',
+                      icon: Icons.leaderboard_rounded,
+                      gradientColors: [const Color(0xFFFFFBEE), const Color(0xFFFFEDD5)],
+                      iconBgColor: const Color(0xFFFED7AA),
+                      iconColor: const Color(0xFFEA580C),
+                      targetScreen: const LeaderboardsView(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
 
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentNavIndex,
-        selectedItemColor: const Color(0xFF1E5E2F),
-        unselectedItemColor: Colors.grey.shade600,
-        backgroundColor: const Color(0xFFEFEFE7),
-        elevation: 4,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 0) {
-            setState(() => _currentNavIndex = 0);
-          } else if (index == 1) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressView()));
-          } else if (index == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardsView()));
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: '',
+  // Welcome Banner with Gradient
+  Widget _buildWelcomeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE8F0E6), Color(0xFFD6E8D3)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back, Rein! 👋',
+                style: TextStyle(
+                  color: Color(0xFF1E293B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                "Let's conquer your study goals today.",
+                style: TextStyle(color: Color(0xFF475569), fontSize: 12),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_rounded),
-            label: '',
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2E7D32), Color(0xFF1E5E2F)],
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 4),
+                Text(
+                  'Regular',
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // 💡 Custom Widget para sa Interactive Card na may Micro Trend Badge
-  Widget _buildInteractiveStatCard({
-    required String value,
-    required String label,
-    required String trend,
-    required Color trendColor,
-    required Color valueColor,
-    required VoidCallback onTap,
+  // Swipeable Stats Carousel with subtle gradient cards
+  Widget _buildStatsCarousel() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 105,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _stats.length,
+            onPageChanged: (index) {
+              setState(() {
+                _activePageIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final item = _stats[index];
+              return Container(
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: item['tagColor'],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        item['tag'],
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: item['tagTextColor'],
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(item['icon'], color: item['iconColor'], size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['value'],
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      item['label'],
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _stats.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              height: 4,
+              width: _activePageIndex == index ? 16 : 4,
+              decoration: BoxDecoration(
+                color: _activePageIndex == index ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Continue Learning Card with Forest Gradient
+  Widget _buildContinueLearningCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E5E2F), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E5E2F).withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CONTINUE LEARNING',
+                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Accounting 101: Balance Sheets',
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Chapter 3 • 80% completed',
+                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1E5E2F),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+            ),
+            child: const Text('Resume', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Compact Gradient Card Widget
+  Widget _buildGradientCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required Color iconBgColor,
+    required Color iconColor,
+    required Widget targetScreen,
   }) {
     return Container(
-      width: 135,
-      margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -468,108 +454,41 @@ class _DashboardViewState extends State<DashboardView> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => targetScreen));
+          },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Micro Trend / Indicator Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: trendColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    trend,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: trendColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: valueColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModuleCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required Color iconBg,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
+            padding: const EdgeInsets.all(10.0),
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconBg,
-                    borderRadius: BorderRadius.circular(16),
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 30,
-                    color: iconColor,
-                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
                 ),
               ],
