@@ -8,54 +8,797 @@ class StudyPlannerView extends StatefulWidget {
 }
 
 class _StudyPlannerViewState extends State<StudyPlannerView> {
-  int _selectedDayIndex = 0; // 0: Mon, 1: Tue...
-  String _selectedFilter = 'All';
-
-  final List<Map<String, String>> _days = [
-    {'day': 'Mon', 'date': '10'},
-    {'day': 'Tue', 'date': '11'},
-    {'day': 'Wed', 'date': '12'},
-    {'day': 'Thu', 'date': '13'},
-    {'day': 'Fri', 'date': '14'},
-    {'day': 'Sat', 'date': '15'},
-    {'day': 'Sun', 'date': '16'},
-  ];
-
-  final List<String> _subjectFilters = [
-    'All',
-    'Biology 101',
-    'Computer Prog 2',
-    'Phil History',
-  ];
+  int _selectedDayIndex = 1; // Default to Tue (11)
+  String _selectedSubjectFilter = 'All';
+  bool _isMonthlyView = false; // Toggle between Week & Month Calendar
 
   final List<Map<String, dynamic>> _tasks = [
     {
-      'title': 'Review Biology Chapter 1 Notes',
+      'id': '1',
+      'title': '📖 Review Biology Chapter 1 Notes',
       'subject': 'Biology 101',
       'time': '09:00 AM - 10:30 AM',
-      'isDone': true,
-      'priority': 'High',
-      'priorityColor': Colors.red,
+      'isCompleted': true,
+      'priority': 'HIGH',
+      'color': const Color(0xFFEF4444),
+      'day': 11,
     },
     {
-      'title': 'Practice Dart & Flutter Coding Exercises',
+      'id': '2',
+      'title': '🎨 Practice Dart & Flutter Coding Exercises',
       'subject': 'Computer Prog 2',
       'time': '01:00 PM - 03:00 PM',
-      'isDone': false,
-      'priority': 'Medium',
-      'priorityColor': Colors.orange,
+      'isCompleted': false,
+      'priority': 'MED',
+      'color': const Color(0xFFF59E0B),
+      'day': 11,
     },
     {
-      'title': 'Read Philippine History Chapters 3 & 4',
+      'id': '3',
+      'title': '📝 Read Philippine History Chapters 3 & 4',
       'subject': 'Phil History',
       'time': '04:00 PM - 05:30 PM',
-      'isDone': false,
-      'priority': 'Low',
-      'priorityColor': Colors.blue,
+      'isCompleted': false,
+      'priority': 'LOW',
+      'color': const Color(0xFF3B82F6),
+      'day': 11,
     },
   ];
 
-  void _showAddTaskModal() {
+  final List<String> _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final List<int> _dates = [10, 11, 12, 13, 14, 15, 16];
+  final List<String> _subjects = ['All', 'Biology 101', 'Computer Prog 2', 'Phil History'];
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredTasks = _selectedSubjectFilter == 'All'
+        ? _tasks
+        : _tasks.where((t) => t['subject'] == _selectedSubjectFilter).toList();
+
+    int completedCount = _tasks.where((t) => t['isCompleted'] == true).length;
+    double progressValue = _tasks.isEmpty ? 0 : completedCount / _tasks.length;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E5E2F), Color(0xFF0F381B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Study Planner',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'AI Auto-Schedule',
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFFFBBF24)),
+            onPressed: _showAiAutoScheduleDialog,
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. EXAM COUNTDOWN BANNER
+            _buildExamCountdownBanner(),
+
+            const SizedBox(height: 14),
+
+            // 2. TODAY'S GOAL PROGRESS CARD
+            _buildGoalProgressCard(completedCount, progressValue),
+
+            const SizedBox(height: 14),
+
+            // 3. AI STUDY INSIGHT BANNER
+            _buildAiInsightBanner(),
+
+            const SizedBox(height: 20),
+
+            // 4. CALENDAR HEADER WITH TOGGLE
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _isMonthlyView ? 'Monthly Calendar' : 'Weekly Schedule',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF111827)),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isMonthlyView = !_isMonthlyView;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(_isMonthlyView ? Icons.view_week_rounded : Icons.calendar_month_rounded, size: 14, color: const Color(0xFF1E5E2F)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isMonthlyView ? 'Week View' : 'Month View',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // 5. CALENDAR VIEW (WEEK STRIP OR MONTH GRID)
+            _isMonthlyView ? _buildMonthlyCalendar() : _buildWeeklyCalendar(),
+
+            const SizedBox(height: 18),
+
+            // 6. SUBJECT FILTER CHIPS
+            _buildSubjectFilters(),
+
+            const SizedBox(height: 20),
+
+            // 7. TASKS HEADER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tasks for ${_days[_selectedDayIndex]} (${_dates[_selectedDayIndex]})',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF111827)),
+                ),
+                Text(
+                  '${filteredTasks.length} Items',
+                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // 8. TASK LIST CARDS
+            if (filteredTasks.isEmpty)
+              _buildEmptyState()
+            else
+              ...filteredTasks.map((task) => _buildTaskCard(task)),
+
+            const SizedBox(height: 24),
+
+            // 9. BOTTOM SUMMARY STATS BAR (CLICKABLE FOR ANALYTICS)
+            GestureDetector(
+              onTap: _showDetailedAnalyticsModal,
+              child: _buildSummaryStatsBar(),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E5E2F), Color(0xFF0F381B)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1E5E2F).withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          onPressed: _showAddTaskBottomSheet,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add Task', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET BUILDERS
+  // ==========================================
+
+  Widget _buildExamCountdownBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFEF2F2), Color(0xFFFFF1F2)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.notifications_active_rounded, color: Color(0xFFDC2626), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  '🚨 Upcoming Major Exam',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF991B1B)),
+                ),
+                Text(
+                  'Biology 101 Midterms in 3 Days!',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF7F1D1D)),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Study Session created for Biology Midterms!')),
+              );
+            },
+            child: const Text('Study Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyCalendar() {
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(_days.length, (index) {
+          final isSelected = _selectedDayIndex == index;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedDayIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 48,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E5E2F), Color(0xFF0F381B)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      )
+                    : null,
+                color: isSelected ? null : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB),
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF1E5E2F).withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    _days[index],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? Colors.white70 : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_dates[index]}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : const Color(0xFF1F2937),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyCalendar() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('August 2026', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+            ),
+            itemCount: 31,
+            itemBuilder: (context, index) {
+              int dayNumber = index + 1;
+              bool isToday = dayNumber == 11;
+              bool hasEvents = [11, 14, 18, 22].contains(dayNumber);
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: isToday ? const Color(0xFF1E5E2F) : const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isToday ? const Color(0xFF1E5E2F) : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$dayNumber',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                        color: isToday ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    if (hasEvents) ...[
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isToday ? Colors.amber : const Color(0xFF1E5E2F),
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    ]
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalProgressCard(int completedCount, double progressValue) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Text(
+                    "Today's Goal Progress ",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2937)),
+                  ),
+                  Text("🎯", style: TextStyle(fontSize: 14)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.amber.shade100, Colors.orange.shade50],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      '5 Day Streak',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$completedCount of ${_tasks.length} tasks completed',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 10,
+              child: LinearProgressIndicator(
+                value: progressValue,
+                backgroundColor: const Color(0xFFE5E7EB),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiInsightBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE0F2FE), Color(0xFFF0F9FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBAE6FD)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.psychology_alt_rounded, color: Color(0xFF0284C7), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: const TextSpan(
+                style: TextStyle(fontSize: 12, color: Color(0xFF334155), height: 1.3),
+                children: [
+                  TextSpan(
+                    text: 'AI Study Insight: ',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+                  ),
+                  TextSpan(
+                    text: 'Your peak focus time is 09:00 AM. Great job starting Biology early!',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _subjects.map((subj) {
+          final isSelected = _selectedSubjectFilter == subj;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              showCheckmark: isSelected,
+              label: Text(subj),
+              selected: isSelected,
+              selectedColor: const Color(0xFF1E5E2F),
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF374151),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB),
+                ),
+              ),
+              onSelected: (bool selected) {
+                setState(() {
+                  _selectedSubjectFilter = subj;
+                });
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTaskCard(Map<String, dynamic> task) {
+    bool isCompleted = task['isCompleted'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCompleted ? const Color(0xFFBBF7D0) : const Color(0xFFF3F4F6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 1.1,
+            child: Checkbox(
+              value: isCompleted,
+              activeColor: const Color(0xFF1E5E2F),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              onChanged: (val) {
+                setState(() {
+                  task['isCompleted'] = val;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: task['color'],
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        task['title'],
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF1F2937),
+                        ),
+                      ),
+                    ),
+                    // PRIORITY BADGE
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: task['priority'] == 'HIGH'
+                            ? Colors.red.shade50
+                            : task['priority'] == 'MED'
+                                ? Colors.amber.shade50
+                                : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        task['priority'],
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: task['priority'] == 'HIGH'
+                              ? Colors.red.shade700
+                              : task['priority'] == 'MED'
+                                  ? Colors.amber.shade800
+                                  : Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        task['subject'],
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF6B7280)),
+                    const SizedBox(width: 4),
+                    Text(
+                      task['time'],
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          IconButton(
+            tooltip: 'Start Focus Session',
+            icon: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFF1E5E2F), size: 30),
+            onPressed: () => _showFocusTimerModal(task['title']),
+          ),
+          IconButton(
+            tooltip: 'Delete Task',
+            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+            onPressed: () {
+              setState(() {
+                _tasks.removeWhere((t) => t['id'] == task['id']);
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryStatsBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildSummaryItem(Icons.timer_outlined, 'Total Focus', '4.5 hrs'),
+          Container(height: 30, width: 1, color: const Color(0xFFE5E7EB)),
+          _buildSummaryItem(Icons.check_circle_outline, 'Completed', '${_tasks.where((t) => t['isCompleted']).length} Tasks'),
+          Container(height: 30, width: 1, color: const Color(0xFFE5E7EB)),
+          _buildSummaryItem(Icons.insights, 'Efficiency', '92% 📊'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: const Color(0xFF1E5E2F)),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937))),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: const [
+          Icon(Icons.event_available_rounded, size: 48, color: Color(0xFF9CA3AF)),
+          SizedBox(height: 8),
+          Text('No tasks found for this filter', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6B7280))),
+          Text('Tap "+ Add Task" to schedule a study session.', style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // MODALS & DIALOGS
+  // ==========================================
+
+  void _showAddTaskBottomSheet() {
+    final titleController = TextEditingController();
+    String selectedSubj = 'Biology 101';
+    String selectedType = 'Assignment 📝';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -66,66 +809,134 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            top: 24,
             left: 20,
             right: 20,
+            top: 20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Add New Study Task 📝',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Task Name',
-                  hintText: 'e.g. Solve 10 Math Problems',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Subject',
-                        hintText: 'e.g. Math 101',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+              const SizedBox(height: 16),
+              const Text(
+                '➕ Add New Task / Reminder',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+
+              // TASK / PROJECT TITLE
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Task or Project Title',
+                  hintText: 'e.g., Submit Essay / Practice Coding',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Time Slot',
-                        hintText: 'e.g. 2:00 PM',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // CATEGORY / TYPE SELECTOR (ASSIGNMENT, PROJECT, STUDY, EXAM)
+              DropdownButtonFormField<String>(
+               initialValue: selectedType,
+                decoration: InputDecoration(
+                  labelText: 'Category / Type',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                ),
+                items: [
+                  'Assignment 📝',
+                  'Project 🎨',
+                  'Study Session 📖',
+                  'Exam Prep 🚨',
+                ].map((type) {
+                  return DropdownMenuItem(value: type, child: Text(type));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) selectedType = val;
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // SUBJECT DROPDOWN
+              DropdownButtonFormField<String>(
+                initialValue: selectedSubj,
+                decoration: InputDecoration(
+                  labelText: 'Subject',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: ['Biology 101', 'Computer Prog 2', 'Phil History'].map((s) {
+                  return DropdownMenuItem(value: s, child: Text(s));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) selectedSubj = val;
+                },
               ),
               const SizedBox(height: 20),
+
+              // SAVE BUTTON
               SizedBox(
                 width: double.infinity,
-                height: 48,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Task added to schedule!')),
-                    );
-                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E5E2F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Save Task', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    if (titleController.text.trim().isNotEmpty) {
+                      // Smart priority and color based on category
+                      String priority = 'MED';
+                      Color taskColor = const Color(0xFF10B981);
+
+                      if (selectedType.contains('Project') || selectedType.contains('Exam')) {
+                        priority = 'HIGH';
+                        taskColor = const Color(0xFFEF4444);
+                      } else if (selectedType.contains('Assignment')) {
+                        priority = 'MED';
+                        taskColor = const Color(0xFFF59E0B);
+                      }
+
+                      String emoji = selectedType.split(' ').last;
+
+                      setState(() {
+                        _tasks.add({
+                          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                          'title': '$emoji ${titleController.text.trim()}',
+                          'subject': selectedSubj,
+                          'time': selectedType.contains('Assignment') || selectedType.contains('Project')
+                              ? '11:59 PM (Deadline)'
+                              : '02:00 PM - 03:30 PM',
+                          'isCompleted': false,
+                          'priority': priority,
+                          'color': taskColor,
+                          'day': 11,
+                        });
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text(
+                    'Save Task / Reminder',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -135,531 +946,160 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     );
   }
 
-  void _showFocusTimer(String taskTitle) {
-    showDialog(
+  void _showDetailedAnalyticsModal() {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.timer_rounded, color: Color(0xFF1E5E2F)),
-            SizedBox(width: 8),
-            Text('Focus Session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              taskTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F5E9),
-                shape: BoxShape.circle,
-              ),
-              child: const Text(
-                '25:00',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text('Pomodoro Method (25m Study / 5m Break)', style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: 380,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              const Text('📊 Weekly Study Analytics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 16),
+              _buildAnalyticsRow('Biology 101', '2.5 hrs', 0.8, Colors.green),
+              _buildAnalyticsRow('Computer Prog 2', '1.5 hrs', 0.5, Colors.amber),
+              _buildAnalyticsRow('Phil History', '0.5 hrs', 0.2, Colors.blue),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E5E2F), foregroundColor: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close Analytics'),
+                ),
+              )
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pomodoro timer started! Stay focused 🎯')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E5E2F),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Start Timer', style: TextStyle(color: Colors.white)),
+        );
+      },
+    );
+  }
+
+  Widget _buildAnalyticsRow(String subject, String time, double ratio, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
           ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(value: ratio, color: color, backgroundColor: Colors.grey.shade200),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final filteredTasks = _selectedFilter == 'All'
-        ? _tasks
-        : _tasks.where((t) => t['subject'] == _selectedFilter).toList();
-
-    final completedCount = _tasks.where((t) => t['isDone'] as bool).length;
-    final totalCount = _tasks.length;
-    final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E5E2F),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Study Planner',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent),
-            tooltip: 'AI Auto-Schedule',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AI is optimizing your weekly study timetable... ✨')),
-              );
-            },
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddTaskModal,
-        backgroundColor: const Color(0xFF1E5E2F),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('Add Task', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 850),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  void _showFocusTimerModal(String taskTitle) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          height: 360,
+          child: Column(
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('⏱️ Focus Session', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 6),
+              Text(taskTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 24),
+              Stack(
+                alignment: Alignment.center,
                 children: [
-                  // 1. PROGRESS HEADER CARD & STREAK
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Today\'s Goal Progress 🎯',
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '$completedCount of $totalCount tasks completed',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF3E0),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.orange.shade300),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Text('🔥 ', style: TextStyle(fontSize: 13)),
-                                  Text(
-                                    '5 Day Streak',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 10,
-                            backgroundColor: Colors.grey.shade200,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: CircularProgressIndicator(
+                      value: 0.75,
+                      strokeWidth: 8,
+                      color: Color(0xFF1E5E2F),
+                      backgroundColor: Colors.black12,
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // 2. AI SMART ADVICE CARD
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE8F5E9), Color(0xFFE0F2FE)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.psychology_rounded, color: Color(0xFF1E5E2F), size: 24),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: RichText(
-                            text: const TextSpan(
-                              style: TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
-                              children: [
-                                TextSpan(text: 'AI Study Insight: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                                TextSpan(text: 'Your peak focus time is 09:00 AM. Great job starting Biology early!'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 3. WEEKLY SCHEDULE DAY STRIP
-                  const Text(
-                    'Weekly Schedule',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 70,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _days.length,
-                      itemBuilder: (context, index) {
-                        final isSelected = _selectedDayIndex == index;
-                        final dayData = _days[index];
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedDayIndex = index;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 58,
-                            margin: const EdgeInsets.only(right: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF1E5E2F) : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF1E5E2F) : Colors.black.withValues(alpha: 0.08),
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(0xFF1E5E2F).withValues(alpha: 0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  dayData['day']!,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? Colors.white70 : Colors.grey.shade600,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  dayData['date']!,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected ? Colors.white : const Color(0xFF1E293B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 4. SUBJECT FILTER CHIPS
-                  SizedBox(
-                    height: 34,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _subjectFilters.length,
-                      itemBuilder: (context, index) {
-                        final filter = _subjectFilters[index];
-                        final isSelected = _selectedFilter == filter;
-                        return Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          child: FilterChip(
-                            selected: isSelected,
-                            label: Text(
-                              filter,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : const Color(0xFF1E293B),
-                              ),
-                            ),
-                            selectedColor: const Color(0xFF1E5E2F),
-                            backgroundColor: Colors.white,
-                            checkmarkColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(
-                                color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
-                              ),
-                            ),
-                            onSelected: (bool selected) {
-                              setState(() {
-                                _selectedFilter = filter;
-                              });
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 5. TASKS HEADER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Tasks for ${_days[_selectedDayIndex]['day']}',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                      ),
-                      Text(
-                        '${filteredTasks.length} Items',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                      ),
+                  Column(
+                    children: const [
+                      Text('25:00', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                      Text('Pomodoro', style: TextStyle(fontSize: 11, color: Colors.grey)),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 6. TASK LIST CARDS
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = filteredTasks[index];
-                      final bool isDone = task['isDone'];
-                      final Color priorityColor = task['priorityColor'];
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // Checkbox
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  task['isDone'] = !isDone;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: isDone ? const Color(0xFF1E5E2F) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isDone ? const Color(0xFF1E5E2F) : Colors.grey.shade400,
-                                    width: 1.8,
-                                  ),
-                                ),
-                                child: isDone
-                                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      // Priority Indicator Dot
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: priorityColor,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          task['title'],
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDone ? Colors.grey : const Color(0xFF1E293B),
-                                            decoration: isDone ? TextDecoration.lineThrough : null,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      // Subject Badge
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE8F5E9),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          task['subject'],
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E5E2F),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Time Slot
-                                      Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade500),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        task['time'],
-                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Focus Session Button & Delete
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFF1E5E2F), size: 22),
-                                  tooltip: 'Start Focus Timer',
-                                  onPressed: () => _showFocusTimer(task['title']),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _tasks.remove(task);
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 7. FOCUS TIME SUMMARY MINI-WIDGET
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem('Total Focus', '4.5 hrs', Icons.timer_rounded),
-                        Container(height: 30, width: 1, color: Colors.grey.shade200),
-                        _buildStatItem('Completed', '$completedCount Tasks', Icons.task_alt_rounded),
-                        Container(height: 30, width: 1, color: Colors.grey.shade200),
-                        _buildStatItem('Efficiency', '92%', Icons.insights_rounded),
-                      ],
-                    ),
                   ),
                 ],
               ),
-            ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: const Text('Cancel')),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E5E2F), foregroundColor: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Focus session started! Good luck! 🎉')));
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Start Timer'),
+                  ),
+                ],
+              )
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: const Color(0xFF1E5E2F)),
-            const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+  void _showAiAutoScheduleDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.auto_awesome, color: Color(0xFFFBBF24)),
+              SizedBox(width: 8),
+              Text('Smart AI Auto-Planner', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+          content: const Text(
+            'The AI analyzed your weak points in Analytics. Would you like it to automatically generate recommended tasks for this week?',
+            style: TextStyle(fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E5E2F),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✨ AI generated 2 recommended tasks for you!')),
+                );
+              },
+              child: const Text('Generate Tasks'),
+            ),
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-        ),
-      ],
+        );
+      },
     );
   }
 }
