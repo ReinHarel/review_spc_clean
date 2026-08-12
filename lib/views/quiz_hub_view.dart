@@ -1,132 +1,316 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class QuizHubView extends StatefulWidget {
-  const QuizHubView({super.key});
+  final int initialModeIndex;
+  final String? subjectTitle;
+  final String? subjectCode;
+
+  const QuizHubView({
+    super.key,
+    this.initialModeIndex = 0,
+    this.subjectTitle,
+    this.subjectCode,
+  });
 
   @override
   State<QuizHubView> createState() => _QuizHubViewState();
 }
 
-class _QuizHubViewState extends State<QuizHubView> {
-  int _selectedMode = 0; // 0: MC, 1: Active Recall, 2: Swipe T/F, 3: Flashcards, 4: Drag&Drop
-  bool _isFlipped = false;
+class _QuizHubViewState extends State<QuizHubView>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  late int _selectedMode;
 
-  // Flashcards Counter State
-  int _remainingCards = 4;
-  int _knownCards = 0;
-  int _reviewCards = 0;
+  // Anti-Cheat & Gamification Stats
+  int _antiCheatViolations = 0;
+  bool _isAntiCheatDialogShowing = false;
+  int _xpEarned = 120;
+  final int _streakDays = 5;
+  final double _accuracy = 85.0;
 
-  // Swipe State
-  double _swipeOffset = 0.0;
-  bool _isDragging = false;
+  // Multiple Choice State
+  final int _currentQuestionIndex = 5;
+  int? _selectedAnswerIndex;
+
+  final List<Map<String, dynamic>> _mcQuestions = [
+    {
+      'question':
+          'Which of the following data structures operates on a Last-In, First-Out (LIFO) basis?',
+      'options': ['A. Queue', 'B. Stack', 'C. Linked List', 'D. Binary Tree'],
+      'correct': 1,
+    }
+  ];
 
   // Active Recall State
   final TextEditingController _recallController = TextEditingController();
+  bool _showRecallAnswer = false;
 
-  // Sequential Drag & Drop State (Left Options & Right Placed Slots)
-  final List<String> _initialOptions = [
-    '3. Trial Balance',
-    '1. Journalizing',
-    '4. Financial Statements',
-    '2. Posting to Ledger',
+  // Swipe True/False Animation State
+  int _swipeCardIndex = 0;
+  double _swipeCardOffset = 0.0;
+
+  final List<String> _swipeQuestions = [
+    'Depreciation is a non-cash expense.',
+    'Does Goodwill appear on the Income Statement?',
   ];
 
-  // Stores items placed in target slots 1, 2, 3, 4 (null if empty)
-  List<String?> _placedItems = [null, null, '4. Financial Statements', null];
+  // Flashcards & Flip Animation State
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+  bool _showBack = false;
+
+  int _remainingCards = 2;
+  int _knownCards = 1;
+  int _reviewCards = 1;
+
+  final List<Map<String, String>> _flashcardsData = [
+    {
+      'question': 'What is the accounting equation?',
+      'answer': 'Assets = Liabilities + Owner\'s Equity'
+    },
+  ];
+
+  // Sequential Drag & Drop Interactive Matching State
+  final List<String> _dragAndDropChoices = [
+    '3. Trial Balance',
+    '1. Journalizing',
+    '2. Posting to Ledger',
+    '4. Financial Statements',
+  ];
+
+  final Map<int, String?> _targetSlots = {
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _selectedMode = widget.initialModeIndex;
+
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
+    )..addListener(() {
+        setState(() {
+          _showBack = _flipAnimation.value >= 0.5;
+        });
+      });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _flipController.dispose();
+    _recallController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!_isAntiCheatDialogShowing) {
+        setState(() {
+          _antiCheatViolations++;
+          _xpEarned = max(0, _xpEarned - 20);
+          _isAntiCheatDialogShowing = true;
+        });
+        _showAntiCheatWarningDialog();
+      }
+    }
+  }
+
+  void _showAntiCheatWarningDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFEBEFEA),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                SizedBox(width: 8),
+                Text(
+                  'Anti-Cheat Alert!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'App switching detected! Violation #$_antiCheatViolations.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '⚠️ Penalty Applied: -20 XP deducted!\nPlease stay inside the app.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 160,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E5E2F),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                ),
+                onPressed: () {
+                  _isAntiCheatDialogShowing = false;
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'I Understand',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      _isAntiCheatDialogShowing = false;
+    });
+  }
+
+  void _toggleFlipCard() {
+    if (_flipController.isAnimating) return;
+    if (_flipController.isCompleted) {
+      _flipController.reverse();
+    } else {
+      _flipController.forward();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0D3B18), Color(0xFF1E5E2F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          'Gamified Review Modules',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
+        backgroundColor: const Color(0xFF1E5E2F),
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        elevation: 4,
+        title: Text(
+          widget.subjectCode ?? 'Gamified Review Modules',
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Mode Selector Bar
-          _buildModeSelector(),
+          _buildTopModeSelector(),
 
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 650),
-                child: Column(
+          // Anti-Cheat Status & Timer Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    // --- CONDITIONALLY RENDER HEADER BASED ON MODE ---
-                    if (_selectedMode != 3) ...[
-                      // Quiz Modes: Show Timer & Progress Bar Header
-                      _buildHeaderStatus(),
-                    ] else ...[
-                      // Flashcards Mode: Header badge lang (No timer/progress bar)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12.0, right: 16.0),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
-                              SizedBox(width: 4),
-                              Text('Anti-Cheat Active', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                              SizedBox(width: 12),
-                              Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey),
-                              SizedBox(width: 4),
-                              Text('Cloud Sync', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    // Main Dynamic Content
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                        child: Column(
-                          children: [
-                            _buildSelectedModule(),
-
-                            const SizedBox(height: 16),
-
-                            // Display appropriate stats per module
-                            if (_selectedMode == 3)
-                              _buildFlashcardsStats()
-                            else
-                              _buildQuizSessionStats(),
-                          ],
-                        ),
+                    Icon(Icons.visibility_outlined,
+                        size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      _antiCheatViolations > 0
+                          ? 'Anti-Cheat: $_antiCheatViolations Warning(s)'
+                          : 'Anti-Cheat Active',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _antiCheatViolations > 0
+                            ? Colors.red
+                            : Colors.grey.shade600,
+                        fontWeight: _antiCheatViolations > 0
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
-              ),
+                if (_selectedMode == 0 || _selectedMode == 1 || _selectedMode == 2)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.timer_outlined,
+                            size: 14, color: Colors.black87),
+                        SizedBox(width: 4),
+                        Text('0:21',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
+
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _buildActiveModeBody(),
+            ),
+          ),
+
+          _buildBottomStatsBar(),
         ],
       ),
     );
   }
 
-  // --- TOP MODE SELECTOR ---
-  Widget _buildModeSelector() {
+  Widget _buildActiveModeBody() {
+    switch (_selectedMode) {
+      case 0:
+        return SingleChildScrollView(child: _buildMultipleChoiceView());
+      case 1:
+        return SingleChildScrollView(child: _buildActiveRecallView());
+      case 2:
+        return SingleChildScrollView(child: _buildSwipeTrueFalseView());
+      case 3:
+        return SingleChildScrollView(child: _build3DFlashcardView());
+      case 4:
+        return SingleChildScrollView(child: _buildSequentialDragAndDropView());
+      default:
+        return SingleChildScrollView(child: _buildMultipleChoiceView());
+    }
+  }
+
+  Widget _buildTopModeSelector() {
     final modes = [
       'Multiple Choice',
       'Active Recall',
@@ -134,491 +318,688 @@ class _QuizHubViewState extends State<QuizHubView> {
       'Flashcards',
       'Sequential Drag&Drop'
     ];
-
     return Container(
-      width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      child: SingleChildScrollView(
+      height: 55,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: List.generate(modes.length, (index) {
-            final isSelected = _selectedMode == index;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: InkWell(
-                onTap: () => setState(() {
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: modes.length,
+        itemBuilder: (context, index) {
+          final isSelected = _selectedMode == index;
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              selected: isSelected,
+              label: Text(modes[index]),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+              selectedColor: const Color(0xFF1E5E2F),
+              backgroundColor: Colors.grey.shade200,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              onSelected: (bool selected) {
+                setState(() {
                   _selectedMode = index;
-                  _isFlipped = false;
-                }),
-                borderRadius: BorderRadius.circular(20),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected) ...[
-                        const Icon(Icons.check, color: Colors.white, size: 14),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        modes[index],
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
+                });
+              },
+            ),
+          );
+        },
       ),
     );
   }
 
-  // --- HEADER FOR QUIZ MODES (Timer + Progress Bar) ---
-  Widget _buildHeaderStatus() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
-                  SizedBox(width: 4),
-                  Text('Anti-Cheat Active', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  SizedBox(width: 12),
-                  Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey),
-                  SizedBox(width: 4),
-                  Text('Cloud Sync', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E5E2F).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF1E5E2F)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.timer_outlined, size: 13, color: Color(0xFF1E5E2F)),
-                    SizedBox(width: 4),
-                    Text('0:21', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text('Question 6 of 10', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 13)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: const LinearProgressIndicator(
-                    value: 0.6,
-                    backgroundColor: Colors.black12,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
-                    minHeight: 6,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // --- 0. Multiple Choice View ---
+  // --- 0. Multiple Choice View (Front-End Demo Friendly) ---
+  Widget _buildMultipleChoiceView() {
+    final q = _mcQuestions[0];
+    final correctIndex = q['correct'] as int;
 
-  Widget _buildSelectedModule() {
-    switch (_selectedMode) {
-      case 0: return _buildMultipleChoice();
-      case 1: return _buildActiveRecall();
-      case 2: return _buildSwipeTrueFalse();
-      case 3: return _buildFlashcards();
-      case 4: return _buildDragDrop();
-      default: return _buildMultipleChoice();
-    }
-  }
-
-  // --- 1. MULTIPLE CHOICE ---
-  Widget _buildMultipleChoice() {
-    return Column(
-      children: [
-        _buildQuestionCard("Which of the following data structures operates on a Last-In, First-Out (LIFO) basis?"),
-        const SizedBox(height: 16),
-        _buildOptionButton("A. Queue"),
-        _buildOptionButton("B. Stack"),
-        _buildOptionButton("C. Linked List"),
-        _buildOptionButton("D. Binary Tree"),
-      ],
-    );
-  }
-
-  // --- 2. ACTIVE RECALL ---
-  Widget _buildActiveRecall() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _buildBadge('Fill in Blank', Colors.grey.shade200, Colors.black87),
-            const SizedBox(width: 8),
-            _buildBadge('Medium', Colors.amber.shade100, Colors.amber.shade900),
-          ],
-        ),
-        const SizedBox(height: 10),
-        const Text('Active Recall', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F))),
-        const Text('Complete the statement by typing the missing keyword:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 12),
-        _buildQuestionCard('"A [ ______ ] is a data structure that follows LIFO ordering."'),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.amber.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.shade200),
+        Text('Question $_currentQuestionIndex of 10',
+            style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: _currentQuestionIndex / 10,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFF1E5E2F),
+            minHeight: 6,
           ),
-          child: const Row(
-            children: [
-              Icon(Icons.lightbulb, size: 16, color: Colors.amber),
-              SizedBox(width: 8),
-              Text('Hint: Starts with letter "S", 5 letters', style: TextStyle(fontSize: 12, color: Colors.amber, fontWeight: FontWeight.w600)),
-            ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Text(
+            q['question'],
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(q['options'].length, (index) {
+          final isSelected = _selectedAnswerIndex == index;
+          final isCorrectOption = index == correctIndex;
+          final hasAnswered = _selectedAnswerIndex != null;
+
+          Color bgColor = Colors.white;
+          Color borderColor = Colors.grey.shade300;
+          Color textColor = Colors.black87;
+          Widget? trailingIcon;
+
+          if (hasAnswered) {
+            if (isCorrectOption) {
+              // Always highlight the correct answer in GREEN once an answer is chosen
+              bgColor = const Color(0xFFE8F5E9);
+              borderColor = const Color(0xFF1E5E2F);
+              textColor = const Color(0xFF1E5E2F);
+              trailingIcon = const Icon(Icons.check_circle, color: Color(0xFF1E5E2F));
+            } else if (isSelected && !isCorrectOption) {
+              // Highlight the wrong chosen answer in RED
+              bgColor = const Color(0xFFFFEBEE);
+              borderColor = Colors.red;
+              textColor = Colors.red.shade900;
+              trailingIcon = const Icon(Icons.cancel, color: Colors.red);
+            }
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedAnswerIndex = index;
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: borderColor,
+                    width: (isSelected || (hasAnswered && isCorrectOption)) ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        q['options'][index],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: (isSelected || (hasAnswered && isCorrectOption))
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                   trailingIcon ?? const SizedBox.shrink(),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+        // Optional UI Hint message for Front-End Demo feedback
+        if (_selectedAnswerIndex != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _selectedAnswerIndex == correctIndex
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _selectedAnswerIndex == correctIndex
+                      ? Icons.lightbulb_outline
+                      : Icons.info_outline,
+                  color: _selectedAnswerIndex == correctIndex
+                      ? const Color(0xFF1E5E2F)
+                      : Colors.red,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _selectedAnswerIndex == correctIndex
+                        ? 'Correct! Stacks use LIFO (Last-In, First-Out).'
+                        : 'Incorrect! The correct answer is B. Stack.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _selectedAnswerIndex == correctIndex
+                          ? const Color(0xFF1E5E2F)
+                          : Colors.red.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ],
+    );
+  }
+  // --- 1. Active Recall View ---
+  Widget _buildActiveRecallView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Question 3 of 10', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: 0.3,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFF1E5E2F),
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: const Text(
+            'Explain the difference between Debt and Equity Financing in 1-2 sentences.',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _recallController,
+          maxLines: 4,
           decoration: InputDecoration(
-            hintText: 'Type your answer here...',
+            hintText: 'Type your explanation here...',
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.grey)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
           ),
         ),
-        const SizedBox(height: 20),
-        _buildGradientButton('Submit Answer', () {}),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E5E2F),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              setState(() {
+                _showRecallAnswer = !_showRecallAnswer;
+              });
+            },
+            child: Text(_showRecallAnswer ? 'Hide Model Answer' : 'Check Model Answer', style: const TextStyle(color: Colors.white)),
+          ),
+        ),
+        if (_showRecallAnswer) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF1E5E2F)),
+            ),
+            child: const Text(
+              'Model Answer: Debt involves borrowing money to be repaid with interest, while Equity involves raising capital by selling shares of ownership.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF1E5E2F)),
+            ),
+          )
+        ]
       ],
     );
   }
 
-  // --- 3. SWIPE TRUE/FALSE ---
-  Widget _buildSwipeTrueFalse() {
+  // --- 2. SWIPE TRUE/FALSE WITH TILTED ROTATION & HAND ICON (Matches Image 3) ---
+  Widget _buildSwipeTrueFalseView() {
+    final rotationAngle = (_swipeCardOffset / 300) * (pi / 12);
+
     return Column(
       children: [
-        const SizedBox(height: 10),
-        GestureDetector(
-          onPanUpdate: (details) {
-            setState(() {
-              _swipeOffset += details.delta.dx;
-              _isDragging = true;
-            });
-          },
-          onPanEnd: (details) {
-            setState(() {
-              _isDragging = false;
-              _swipeOffset = 0.0;
-            });
-          },
-          child: AnimatedContainer(
-            duration: _isDragging ? Duration.zero : const Duration(milliseconds: 300),
-            transform: Matrix4.translationValues(_swipeOffset, 0, 0)..rotateZ(_swipeOffset / 1000),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 15, spreadRadius: 2)],
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.touch_app, size: 40, color: Color(0xFF1E5E2F)),
-                const SizedBox(height: 16),
-                const Text('Depreciation is a non-cash expense.', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                Text('👈 Drag Left for False | Drag Right for True 👉', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              ],
-            ),
+        const Text('Question 6 of 10', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: 0.6,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFF1E5E2F),
+            minHeight: 6,
           ),
         ),
         const SizedBox(height: 24),
+
+        // Interactive Tilted Drag Card
+        GestureDetector(
+          onPanUpdate: (details) {
+            setState(() {
+              _swipeCardOffset += details.delta.dx;
+            });
+          },
+          onPanEnd: (details) {
+            if (_swipeCardOffset > 100) {
+              // Swiped Right -> TRUE
+              _triggerNextSwipeCard();
+            } else if (_swipeCardOffset < -100) {
+              // Swiped Left -> FALSE
+              _triggerNextSwipeCard();
+            } else {
+              // Snap back to center
+              setState(() {
+                _swipeCardOffset = 0.0;
+              });
+            }
+          },
+          child: Transform.translate(
+            offset: Offset(_swipeCardOffset, 0),
+            child: Transform.rotate(
+              angle: rotationAngle,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      // ignore: deprecated_member_use
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Hand Gesture Tap Icon
+                    const Icon(
+                      Icons.touch_app_rounded,
+                      size: 40,
+                      color: Color(0xFF1E5E2F),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _swipeQuestions[_swipeCardIndex],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '👈 Drag Left for False | Drag Right for True 👉',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        // False and True Action Buttons
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
+                  backgroundColor: const Color(0xFFEF5350),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
                 ),
-                onPressed: () {},
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('FALSE', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => _triggerNextSwipeCard(),
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: const Text('FALSE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E5E2F),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
                 ),
-                onPressed: () {},
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('TRUE', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => _triggerNextSwipeCard(),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                label: const Text('TRUE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               ),
             ),
           ],
-        ),
+        )
       ],
     );
   }
 
-  // --- 4. FLASHCARDS ---
-  Widget _buildFlashcards() {
+  void _triggerNextSwipeCard() {
+    setState(() {
+      _swipeCardOffset = 0.0;
+      _swipeCardIndex = (_swipeCardIndex + 1) % _swipeQuestions.length;
+    });
+  }
+
+  // --- 3. Flashcards View ---
+  Widget _build3DFlashcardView() {
     return Column(
       children: [
+        const SizedBox(height: 10),
         GestureDetector(
-          onTap: () => setState(() => _isFlipped = !_isFlipped),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 220),
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.shade300, width: 1.5),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3))],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildBadge(
-                  _isFlipped ? 'ANSWER' : 'QUESTION',
-                  _isFlipped ? const Color(0xFFC8E6C9) : Colors.grey.shade200,
-                  _isFlipped ? const Color(0xFF1E5E2F) : Colors.black87,
+          onTap: _toggleFlipCard,
+          child: AnimatedBuilder(
+            animation: _flipAnimation,
+            builder: (context, child) {
+              final angle = _flipAnimation.value * pi;
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(angle),
+                alignment: Alignment.center,
+                child: Container(
+                  width: double.infinity,
+                  height: 240,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: _showBack
+                        ? const LinearGradient(
+                            colors: [Color(0xFF0F381B), Color(0xFF1E5E2F)],
+                          )
+                        : const LinearGradient(
+                            colors: [Colors.white, Color(0xFFF1F5F9)],
+                          ),
+                    border: Border.all(
+                      color: _showBack ? Colors.green.shade800 : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: _showBack
+                      ? Transform(
+                          transform: Matrix4.identity()..rotateY(pi),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
+                                child: const Text('ANSWER', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(_flashcardsData[0]['answer']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
+                              child: const Text('QUESTION', style: TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(_flashcardsData[0]['question']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                            const SizedBox(height: 16),
+                            const Text('Tap card to flip', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  _isFlipped
-                      ? 'Assets = Liabilities + Owner\'s Equity'
-                      : 'What is the accounting equation?',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.autorenew, size: 14, color: Colors.grey),
-                    SizedBox(width: 4),
-                    Text('Tap to flip', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 20),
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.orange, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: const Color(0xFFFFF7ED),
+                  foregroundColor: const Color(0xFFEA580C),
+                  side: const BorderSide(color: Color(0xFFFDBA74)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                onPressed: () {
-                  setState(() {
-                    if (_remainingCards > 0) _remainingCards--;
-                    _reviewCards++;
-                    _isFlipped = false;
-                  });
-                },
-                icon: const Icon(Icons.refresh, color: Colors.orange, size: 18),
-                label: const Text('Review Again', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                onPressed: () => setState(() => _reviewCards++),
+                icon: const Icon(Icons.replay_rounded, size: 18),
+                label: const Text('Review Again', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D3B18),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF1E5E2F), Color(0xFF15803D)]),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                onPressed: () {
-                  setState(() {
-                    if (_remainingCards > 0) _remainingCards--;
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => setState(() {
                     _knownCards++;
-                    _isFlipped = false;
-                  });
-                },
-                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                label: const Text('Know It!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    if (_remainingCards > 0) _remainingCards--;
+                  }),
+                  icon: const Icon(Icons.check_circle_rounded, size: 18),
+                  label: const Text('Know It!', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem('Remaining', '$_remainingCards', Colors.black87),
+              _buildStatItem('Known', '$_knownCards', const Color(0xFF16A34A)),
+              _buildStatItem('Review', '$_reviewCards', const Color(0xFFEA580C)),
+            ],
+          ),
+        )
       ],
     );
   }
 
-  // --- 5. SEQUENTIAL DRAG & DROP (2-COLUMN MATCHING UI) ---
-  Widget _buildDragDrop() {
-    final unplacedOptions = _initialOptions
-        .where((option) => !_placedItems.contains(option))
-        .toList();
-
+  // --- 4. REAL INTERACTIVE DRAG & DROP WITH RE-ADDABLE SLOTS (Matches Images 1 & 2) ---
+  Widget _buildSequentialDragAndDropView() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text('Question 6 of 10', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: 0.6,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFF1E5E2F),
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: 16),
         const Text(
           'Procedural Challenge',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Sequence the steps of the Accounting Cycle correctly:',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
         ),
         const SizedBox(height: 20),
 
-        // TWO-COLUMN DRAG & DROP LAYOUT
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LEFT COLUMN: Options
+            // Left Column: Draggable choices
             Expanded(
-              flex: 2,
               child: Column(
-                children: unplacedOptions.map((option) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Draggable<String>(
-                      data: option,
-                      feedback: Material(
-                        elevation: 4,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFF1E5E2F), width: 1.5),
-                          ),
-                          child: Text(
-                            option,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
+                children: _dragAndDropChoices.map((item) {
+                  final isAlreadyPlaced = _targetSlots.containsValue(item);
+
+                  if (isAlreadyPlaced) {
+                    // Empty spacer when dragged/placed so position is maintained
+                    return const SizedBox(height: 64);
+                  }
+
+                  return Draggable<String>(
+                    data: item,
+                    feedback: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 170,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF1E5E2F), width: 2),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                        ),
+                        child: Text(
+                          item,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                         ),
                       ),
-                      childWhenDragging: Opacity(
-                        opacity: 0.3,
-                        child: _buildOptionChip(option),
-                      ),
-                      child: _buildOptionChip(option),
                     ),
+                    childWhenDragging: Opacity(
+                      opacity: 0.3,
+                      child: _buildChoiceCard(item),
+                    ),
+                    child: _buildChoiceCard(item),
                   );
                 }).toList(),
               ),
             ),
 
-            const SizedBox(width: 20),
+            const SizedBox(width: 16),
 
-            // RIGHT COLUMN: Target Slots (1, 2, 3, 4)
+            // Right Column: Interactive Drop Target Slots 1, 2, 3, 4
             Expanded(
-              flex: 3,
               child: Column(
-                children: List.generate(4, (index) {
-                  final placedItem = _placedItems[index];
+                children: [1, 2, 3, 4].map((slotNum) {
+                  final placedValue = _targetSlots[slotNum];
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: DragTarget<String>(
-                      onAcceptWithDetails: (details) {
-                        setState(() {
-                          _placedItems[index] = details.data;
-                        });
-                      },
-                      builder: (context, candidateData, rejectedData) {
-                        final isFilled = placedItem != null;
+                  return DragTarget<String>(
+                    onAcceptWithDetails: (details) {
+                      setState(() {
+                        _targetSlots[slotNum] = details.data;
+                      });
+                    },
+                    builder: (context, candidateData, rejectedData) {
+                      final isHovered = candidateData.isNotEmpty;
 
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: 52,
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isFilled ? const Color(0xFFE8F5E9) : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isFilled
-                                  ? const Color(0xFF1E5E2F)
-                                  : (candidateData.isNotEmpty ? const Color(0xFF1E5E2F) : Colors.grey.shade300),
-                              width: isFilled ? 1.5 : 1.0,
-                            ),
+                      return Container(
+                        width: double.infinity,
+                        height: 52,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: placedValue != null
+                              ? const Color(0xFFE8F5E9)
+                              : (isHovered ? const Color(0xFFF1F8F3) : Colors.white),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: placedValue != null
+                                ? const Color(0xFF1E5E2F)
+                                : (isHovered ? const Color(0xFF1E5E2F) : Colors.grey.shade300),
+                            width: placedValue != null || isHovered ? 1.5 : 1,
                           ),
-                          child: isFilled
+                        ),
+                        child: Center(
+                          child: placedValue != null
                               ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      placedItem,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E5E2F),
-                                        fontSize: 13,
+                                    Expanded(
+                                      child: Text(
+                                        placedValue,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Color(0xFF1E5E2F),
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
                                     GestureDetector(
                                       onTap: () {
+                                        // Removes from slot and automatically returns to left choices list
                                         setState(() {
-                                          _placedItems[index] = null;
+                                          _targetSlots[slotNum] = null;
                                         });
                                       },
-                                      child: const Icon(Icons.cancel, size: 16, color: Colors.grey),
-                                    ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(right: 8),
+                                        child: Icon(Icons.cancel, size: 18, color: Colors.grey),
+                                      ),
+                                    )
                                   ],
                                 )
                               : Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.bold,
+                                  '$slotNum',
+                                  style: TextStyle(
                                     fontSize: 14,
+                                    color: Colors.grey.shade400,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   );
-                }),
+                }).toList(),
               ),
             ),
           ],
@@ -626,204 +1007,133 @@ class _QuizHubViewState extends State<QuizHubView> {
 
         const SizedBox(height: 20),
 
-        // BOTTOM BUTTONS (Reset & Confirm Sequence)
+        // Action Buttons: Reset & Confirm
         Row(
           children: [
             Expanded(
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: Colors.grey.shade400),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(color: Colors.grey.shade300),
                 ),
                 onPressed: () {
+                  // Clears all slots, restoring all items to left list
                   setState(() {
-                    _placedItems = [null, null, null, null];
+                    _targetSlots.updateAll((key, value) => null);
                   });
                 },
-                child: const Text(
-                  'Reset',
-                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
+                child: Text('Reset', style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E5E2F),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: const Color(0xFF1E5E2F),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {},
-                child: const Text(
-                  'Confirm Sequence',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
+                child: const Text('Confirm Sequence', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
-        ),
+        )
       ],
     );
   }
 
-  // --- FLASHCARDS STATS (Remaining, Known, Review) ---
-  Widget _buildFlashcardsStats() {
+  Widget _buildChoiceCard(String item) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      width: double.infinity,
+      height: 52,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Session Stats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSimpleStat('$_remainingCards', 'Remaining', Colors.black87),
-              _buildSimpleStat('$_knownCards', 'Known', Colors.green),
-              _buildSimpleStat('$_reviewCards', 'Review', Colors.orange),
-            ],
-          ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+          )
         ],
+      ),
+      child: Center(
+        child: Text(
+          item,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+        ),
       ),
     );
   }
 
-  // --- QUIZ STATS (Streak, XP, Accuracy) ---
-  Widget _buildQuizSessionStats() {
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ],
+    );
+  }
+
+  // --- Dynamic Bottom Stats Bar ---
+  Widget _buildBottomStatsBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem(Icons.local_fire_department, '5 Days', 'Streak', Colors.orange),
-          Container(width: 1, height: 30, color: Colors.grey.shade300),
-          _buildStatItem(Icons.bolt, '+120 XP', 'Earned', Colors.amber.shade700),
-          Container(width: 1, height: 30, color: Colors.grey.shade300),
-          _buildStatItem(Icons.center_focus_strong, '85%', 'Accuracy', const Color(0xFF1E5E2F)),
+          Row(
+            children: [
+              const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 20),
+              const SizedBox(width: 6),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$_streakDays Days', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Streak', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              const Icon(Icons.bolt_rounded, color: Colors.amber, size: 20),
+              const SizedBox(width: 6),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('+$_xpEarned XP', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Earned', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+          if (_selectedMode != 3)
+            Row(
+              children: [
+                const Icon(Icons.center_focus_strong_rounded, color: Colors.green, size: 20),
+                const SizedBox(width: 6),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${_accuracy.toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('Accuracy', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleStat(String value, String label, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(IconData icon, String value, String label, Color color) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 4),
-            Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ],
-    );
-  }
-
-  // --- HELPER WIDGETS ---
-  Widget _buildOptionChip(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildQuestionCard(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
-      ),
-      child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, height: 1.4)),
-    );
-  }
-
-  Widget _buildOptionButton(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String text, Color bg, Color textCol) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textCol)),
-    );
-  }
-
-  Widget _buildGradientButton(String label, VoidCallback onPressed, {IconData? icon}) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E5E2F),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[Icon(icon, color: Colors.white, size: 18), const SizedBox(width: 6)],
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-          ],
-        ),
       ),
     );
   }
