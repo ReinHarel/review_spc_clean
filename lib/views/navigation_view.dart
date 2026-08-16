@@ -46,13 +46,13 @@ class _NavigationViewState extends State<NavigationView> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.show_chart_outlined),
+            activeIcon: Icon(Icons.show_chart),
             label: 'Analytics',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            activeIcon: Icon(Icons.emoji_events),
+            icon: Icon(Icons.military_tech_outlined),
+            activeIcon: Icon(Icons.military_tech),
             label: 'Badges',
           ),
           BottomNavigationBarItem(
