@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../models/game_progress.dart';
 import 'quiz_take_view.dart';
 
 class QuizHubView extends StatefulWidget {
@@ -11,7 +12,7 @@ class QuizHubView extends StatefulWidget {
 
   const QuizHubView({
     super.key,
-    this.initialModeIndex = 5,
+    this.initialModeIndex = 6,
     this.subjectTitle,
     this.subjectCode,
   });
@@ -27,9 +28,8 @@ class _QuizHubViewState extends State<QuizHubView>
   // Anti-Cheat & Gamification Stats
   int _antiCheatViolations = 0;
   bool _isAntiCheatDialogShowing = false;
-  int _xpEarned = 120;
-  final int _streakDays = 5;
-  final double _accuracy = 85.0;
+
+  GameProgressStore get _store => GameProgressStore.instance;
 
   int _customItemCount = 10;
   String _timerSpeed = 'Standard';
@@ -130,7 +130,8 @@ class _QuizHubViewState extends State<QuizHubView>
       if (!_isAntiCheatDialogShowing) {
         setState(() {
           _antiCheatViolations++;
-          _xpEarned = max(0, _xpEarned - 20);
+          final currentXp = _store.progress.xp;
+          _store.addXp(-min(20, currentXp));
           _isAntiCheatDialogShowing = true;
         });
         _showAntiCheatWarningDialog();
@@ -224,132 +225,145 @@ class _QuizHubViewState extends State<QuizHubView>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [const Color(0xFFF0F4F1), const Color(0xFFE2EFE7)],
-          ),
-        ),
-        child: Scaffold(
+    return ListenableBuilder(
+      listenable: _store,
+      builder: (context, _) {
+        final progress = _store.progress;
+        final streakDays = max(1, progress.level + 1);
+        final accuracy = progress.quizzesCompleted > 0
+            ? ((progress.accuracyMasterCount / progress.quizzesCompleted) * 100)
+                  .clamp(0.0, 100.0)
+            : 0.0;
+
+        return Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF1E5E2F),
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              widget.subjectCode ?? 'Gamified Review Modules',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [const Color(0xFFF0F4F1), const Color(0xFFE2EFE7)],
               ),
             ),
-            centerTitle: true,
-          ),
-          body: Column(
-            children: [
-              _buildTopModeSelector(),
-
-              // Anti-Cheat Status & Timer Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 6,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                backgroundColor: const Color(0xFF1E5E2F),
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.visibility_outlined,
-                          size: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _antiCheatViolations > 0
-                              ? 'Anti-Cheat: $_antiCheatViolations Warning(s)'
-                              : 'Anti-Cheat Active',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _antiCheatViolations > 0
-                                ? Colors.red
-                                : Colors.grey.shade600,
-                            fontWeight: _antiCheatViolations > 0
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ],
+                title: Text(
+                  widget.subjectCode ?? 'Gamified Review Modules',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                centerTitle: true,
+              ),
+              body: Column(
+                children: [
+                  _buildTopModeSelector(),
+
+                  // Anti-Cheat Status & Timer Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
                     ),
-                    if (_selectedMode == 0 ||
-                        _selectedMode == 1 ||
-                        _selectedMode == 2)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
                           children: [
                             Icon(
-                              Icons.timer_outlined,
+                              Icons.visibility_outlined,
                               size: 14,
-                              color: Colors.black87,
+                              color: Colors.grey.shade600,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              '0:21',
+                              _antiCheatViolations > 0
+                                  ? 'Anti-Cheat: $_antiCheatViolations Warning(s)'
+                                  : 'Anti-Cheat Active',
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                                color: _antiCheatViolations > 0
+                                    ? Colors.red
+                                    : Colors.grey.shade600,
+                                fontWeight: _antiCheatViolations > 0
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                  ],
-                ),
-              ),
+                        if (_selectedMode == 0 ||
+                            _selectedMode == 1 ||
+                            _selectedMode == 2)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.timer_outlined,
+                                  size: 14,
+                                  color: Colors.black87,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '0:21',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
 
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height * 0.5,
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 20,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight:
+                                  MediaQuery.of(context).size.height * 0.5,
+                            ),
+                            child: _buildActiveModeBodyCard(),
+                          ),
                         ),
-                        child: _buildActiveModeBodyCard(),
                       ),
                     ),
                   ),
-                ),
-              ),
 
-              _buildBottomStatsBar(),
-            ],
+                  _buildBottomStatsBar(progress, streakDays, accuracy),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -390,6 +404,8 @@ class _QuizHubViewState extends State<QuizHubView>
       case 4:
         return SingleChildScrollView(child: _buildSequentialDragAndDropView());
       case 5:
+        return _buildFillInTheBlanksView();
+      case 6:
         return _buildAssessmentCard(
           title: 'Pre-Test (Baseline Assessment)',
           subtitle:
@@ -398,7 +414,7 @@ class _QuizHubViewState extends State<QuizHubView>
           highlight: 'Starts your study baseline',
           isPreTest: true,
         );
-      case 6:
+      case 7:
         return _buildAssessmentCard(
           title: 'Post-Test (Mastery Assessment)',
           subtitle: 'Measure improvement after completing the learning track.',
@@ -406,7 +422,7 @@ class _QuizHubViewState extends State<QuizHubView>
           highlight: 'Mastery check after practice',
           isPreTest: false,
         );
-      case 7:
+      case 8:
         return _buildCustomQuizCard();
       default:
         return SingleChildScrollView(child: _buildMultipleChoiceView());
@@ -807,6 +823,7 @@ class _QuizHubViewState extends State<QuizHubView>
       'Swipe True/False',
       'Flashcards',
       'Sequence Order',
+      'Fill in the Blanks',
     ];
 
     // Map mode names to their indices
@@ -816,9 +833,10 @@ class _QuizHubViewState extends State<QuizHubView>
       'Swipe True/False': 2,
       'Flashcards': 3,
       'Sequence Order': 4,
-      'Pre-Test': 5,
-      'Post-Test': 6,
-      'Custom Quiz': 7,
+      'Fill in the Blanks': 5,
+      'Pre-Test': 6,
+      'Post-Test': 7,
+      'Custom Quiz': 8,
     };
 
     return Column(
@@ -967,6 +985,127 @@ class _QuizHubViewState extends State<QuizHubView>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFillInTheBlanksView() {
+    final question = 'Assets = _____ + Equity.';
+    final answer = 'Liabilities';
+    final controller = TextEditingController();
+    return StatefulBuilder(
+      builder: (context, setInnerState) {
+        final isSubmitted = controller.text.trim().isNotEmpty;
+        final isCorrect =
+            controller.text.trim().toLowerCase() == answer.toLowerCase();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Practice: Fill in the Blanks',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: 0.7,
+                backgroundColor: Colors.grey.shade200,
+                color: const Color(0xFF1E5E2F),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                question,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              onChanged: (_) => setInnerState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Type the missing term...',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E5E2F),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSubmitted
+                    ? (isCorrect
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFFFEBEE))
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSubmitted
+                      ? (isCorrect ? const Color(0xFF1E5E2F) : Colors.red)
+                      : Colors.grey.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isSubmitted
+                        ? (isCorrect ? Icons.check_circle : Icons.cancel)
+                        : Icons.lightbulb_outline,
+                    color: isSubmitted
+                        ? (isCorrect ? const Color(0xFF1E5E2F) : Colors.red)
+                        : const Color(0xFF1E5E2F),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isSubmitted
+                          ? (isCorrect
+                                ? 'Correct! You earned 10 XP.'
+                                : 'Incorrect. The correct answer is Liabilities.')
+                          : 'Use the missing term that balances the equation.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isSubmitted
+                            ? (isCorrect
+                                  ? const Color(0xFF1E5E2F)
+                                  : Colors.red.shade900)
+                            : const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1861,7 +2000,11 @@ class _QuizHubViewState extends State<QuizHubView>
   }
 
   // --- Dynamic Bottom Stats Bar ---
-  Widget _buildBottomStatsBar() {
+  Widget _buildBottomStatsBar(
+    GameProgress progress,
+    int streakDays,
+    double accuracy,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
       decoration: BoxDecoration(
@@ -1883,7 +2026,7 @@ class _QuizHubViewState extends State<QuizHubView>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$_streakDays Days',
+                    '$streakDays Days',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -1905,7 +2048,7 @@ class _QuizHubViewState extends State<QuizHubView>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '+$_xpEarned XP',
+                    '+${progress.xp} XP',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -1932,7 +2075,7 @@ class _QuizHubViewState extends State<QuizHubView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${_accuracy.toInt()}%',
+                      '${accuracy.round()}%',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,

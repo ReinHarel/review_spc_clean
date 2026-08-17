@@ -61,6 +61,25 @@ class QuizTakeView extends StatefulWidget {
     this.onPracticeModeComplete,
   });
 
+  static bool isFillBlankAnswerCorrect(
+    String answer,
+    List<String> acceptedAnswers,
+  ) {
+    final normalizedInput = answer
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    return acceptedAnswers.any((candidate) {
+      final normalizedCandidate = candidate
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ');
+      return normalizedInput == normalizedCandidate;
+    });
+  }
+
   @override
   State<QuizTakeView> createState() => _QuizTakeViewState();
 }
@@ -92,6 +111,11 @@ class _QuizTakeViewState extends State<QuizTakeView>
   bool _recallChecked = false;
   double _similarityScore = 0.0;
   List<Map<String, String>> _keyConceptResults = [];
+
+  // ── Fill-in-the-blanks state ──────────────────────────────────────
+  final TextEditingController _fillBlankController = TextEditingController();
+  bool _fillBlankChecked = false;
+  bool _fillBlankCorrect = false;
 
   // ── Question bank ──────────────────────────────────────────────────
   late final List<Map<String, dynamic>> _questions;
@@ -164,6 +188,14 @@ class _QuizTakeViewState extends State<QuizTakeView>
         ],
         'points': 10,
       },
+      {
+        'type': 'fill_blank',
+        'question':
+            'Complete the accounting equation: Assets = _____ + Equity.',
+        'acceptedAnswers': <String>['liabilities', 'liability'],
+        'promptHint': 'Type the missing term here...',
+        'points': 10,
+      },
     ];
 
     _maxPoints = _questions.fold<int>(0, (s, q) => s + (q['points'] as int));
@@ -175,6 +207,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
     _ticker.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _recallController.dispose();
+    _fillBlankController.dispose();
     super.dispose();
   }
 
@@ -443,6 +476,21 @@ class _QuizTakeViewState extends State<QuizTakeView>
     });
   }
 
+  void _checkFillBlankAnswer() {
+    final q = _questions[_currentIndex];
+    final user = _fillBlankController.text;
+    final accepted = List<String>.from(q['acceptedAnswers'] as List);
+    setState(() {
+      _fillBlankChecked = true;
+      _fillBlankCorrect = QuizTakeView.isFillBlankAnswerCorrect(user, accepted);
+      if (_fillBlankCorrect) {
+        _pointsEarned += q['points'] as int;
+      } else {
+        _recordMistakeForCurrentQuestion();
+      }
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   //  NAVIGATION / SCORING
   // ═══════════════════════════════════════════════════════════════════
@@ -469,6 +517,9 @@ class _QuizTakeViewState extends State<QuizTakeView>
         _similarityScore = 0.0;
         _keyConceptResults = [];
         _recallController.clear();
+        _fillBlankChecked = false;
+        _fillBlankCorrect = false;
+        _fillBlankController.clear();
         if (_questions[_currentIndex]['type'] == 'sequence') {
           _initSequenceSlots(_currentIndex);
         }
@@ -762,6 +813,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
     'mcq' => const Color(0xFF3B82F6),
     'sequence' => const Color(0xFFF59E0B),
     'recall' => const Color(0xFF8B5CF6),
+    'fill_blank' => const Color(0xFF06B6D4),
     _ => const Color(0xFF64748B),
   };
 
@@ -769,6 +821,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
     'mcq' => 'Multiple Choice',
     'sequence' => 'Sequence Order',
     'recall' => 'Active Recall',
+    'fill_blank' => 'Fill in the Blanks',
     _ => 'Question',
   };
 
@@ -791,6 +844,12 @@ class _QuizTakeViewState extends State<QuizTakeView>
           ? _checkRecallAnswer
           : null;
     }
+    if (t == 'fill_blank') {
+      if (_fillBlankChecked) return _nextQuestion;
+      return _fillBlankController.text.trim().isNotEmpty
+          ? _checkFillBlankAnswer
+          : null;
+    }
     if (_currentIndex < _questions.length - 1) return _nextQuestion;
     return _finishQuiz;
   }
@@ -810,6 +869,9 @@ class _QuizTakeViewState extends State<QuizTakeView>
     }
     if (t == 'recall') {
       return _recallChecked ? 'Next Question ➔' : 'Check Model Answer';
+    }
+    if (t == 'fill_blank') {
+      return _fillBlankChecked ? 'Next Question ➔' : 'Check Answer';
     }
     if (_currentIndex < _questions.length - 1) {
       return 'Next Question ➔';
@@ -1053,6 +1115,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
                         if (type == 'mcq') _buildMcq(q),
                         if (type == 'sequence') _buildSequence(q),
                         if (type == 'recall') _buildRecall(q),
+                        if (type == 'fill_blank') _buildFillBlank(q),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -1552,6 +1615,84 @@ class _QuizTakeViewState extends State<QuizTakeView>
           ),
         ),
         if (_recallChecked) ...[const SizedBox(height: 16), _recallFeedback(q)],
+      ],
+    );
+  }
+
+  Widget _buildFillBlank(Map<String, dynamic> q) {
+    final accepted = List<String>.from(q['acceptedAnswers'] as List);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _fillBlankController,
+          enabled: !_fillBlankChecked,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: q['promptHint'] as String? ?? 'Type the missing term...',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF1E5E2F), width: 2),
+            ),
+          ),
+        ),
+        if (_fillBlankChecked) ...[
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _fillBlankCorrect
+                  ? const Color(0xFFECFDF5)
+                  : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _fillBlankCorrect
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFEF4444),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _fillBlankCorrect
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  color: _fillBlankCorrect
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFEF4444),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _fillBlankCorrect
+                        ? 'Correct! ${accepted.first} is the missing term.'
+                        : 'Incorrect. The correct answer is ${accepted.first}.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _fillBlankCorrect
+                          ? const Color(0xFF065F46)
+                          : const Color(0xFF7F1D1D),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
