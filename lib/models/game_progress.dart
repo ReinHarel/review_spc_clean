@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 /// Shared badge definition used by the Achievements, Profile, and
@@ -52,6 +54,10 @@ class GameProgress {
   final String levelTitle;
   final int xp;
   final int xpToNext;
+  final int quizzesCompleted;
+  final int perfectQuizzes;
+  final int accuracyMasterCount;
+  final List<String> weakConcepts;
   final List<BadgeData> badges;
 
   const GameProgress({
@@ -59,19 +65,28 @@ class GameProgress {
     required this.levelTitle,
     required this.xp,
     required this.xpToNext,
+    required this.quizzesCompleted,
+    required this.perfectQuizzes,
+    required this.accuracyMasterCount,
+    required this.weakConcepts,
     required this.badges,
   });
 
   int get unlockedCount => badges.where((b) => b.isUnlocked).length;
   int get totalBadges => badges.length;
   double get xpProgress => (xp / xpToNext).clamp(0.0, 1.0).toDouble();
-  List<BadgeData> get unlockedBadges => badges.where((b) => b.isUnlocked).toList();
+  List<BadgeData> get unlockedBadges =>
+      badges.where((b) => b.isUnlocked).toList();
 
   GameProgress copyWith({
     int? level,
     String? levelTitle,
     int? xp,
     int? xpToNext,
+    int? quizzesCompleted,
+    int? perfectQuizzes,
+    int? accuracyMasterCount,
+    List<String>? weakConcepts,
     List<BadgeData>? badges,
   }) {
     return GameProgress(
@@ -79,6 +94,10 @@ class GameProgress {
       levelTitle: levelTitle ?? this.levelTitle,
       xp: xp ?? this.xp,
       xpToNext: xpToNext ?? this.xpToNext,
+      quizzesCompleted: quizzesCompleted ?? this.quizzesCompleted,
+      perfectQuizzes: perfectQuizzes ?? this.perfectQuizzes,
+      accuracyMasterCount: accuracyMasterCount ?? this.accuracyMasterCount,
+      weakConcepts: weakConcepts ?? this.weakConcepts,
       badges: badges ?? this.badges,
     );
   }
@@ -96,6 +115,10 @@ class GameProgressStore extends ChangeNotifier {
     levelTitle: 'Level 4 Scholar',
     xp: 1250,
     xpToNext: 2000,
+    quizzesCompleted: 8,
+    perfectQuizzes: 5,
+    accuracyMasterCount: 6,
+    weakConcepts: ['Data Structures', 'Time Complexity', 'Dynamic Programming'],
     badges: [
       BadgeData(
         title: 'First Steps',
@@ -236,13 +259,15 @@ class GameProgressStore extends ChangeNotifier {
 
   void unlockBadge(String title) {
     final updated = _progress.badges
-        .map((b) => b.title == title && !b.isUnlocked
-            ? b.copyWith(
-                isUnlocked: true,
-                unlockedDate: 'Unlocked Just now',
-                progress: 1.0,
-              )
-            : b)
+        .map(
+          (b) => b.title == title && !b.isUnlocked
+              ? b.copyWith(
+                  isUnlocked: true,
+                  unlockedDate: 'Unlocked Just now',
+                  progress: 1.0,
+                )
+              : b,
+        )
         .toList();
     _progress = _progress.copyWith(badges: updated);
     notifyListeners();
@@ -250,6 +275,156 @@ class GameProgressStore extends ChangeNotifier {
 
   void addXp(int amount) {
     _progress = _progress.copyWith(xp: _progress.xp + amount);
+    notifyListeners();
+  }
+
+  List<String> get reviewMistakes => _progress.weakConcepts;
+
+  void addWeakConcept(String concept) {
+    final normalized = concept.trim();
+    if (normalized.isEmpty) return;
+
+    final existing = _progress.weakConcepts
+        .map((value) => value.trim())
+        .toList();
+    if (existing.any(
+      (value) => value.toLowerCase() == normalized.toLowerCase(),
+    )) {
+      return;
+    }
+
+    _progress = _progress.copyWith(weakConcepts: [...existing, normalized]);
+    notifyListeners();
+  }
+
+  void recordMistake({required String question, List<String>? concepts}) {
+    final items = <String>[];
+    if (question.trim().isNotEmpty) items.add(question.trim());
+    if (concepts != null) {
+      for (final concept in concepts) {
+        final trimmed = concept.trim();
+        if (trimmed.isNotEmpty) items.add(trimmed);
+      }
+    }
+
+    for (final item in items) {
+      addWeakConcept(item);
+    }
+  }
+
+  void clearWeakConcepts() {
+    _progress = _progress.copyWith(weakConcepts: const []);
+    notifyListeners();
+  }
+
+  // ── Level thresholds ──────────────────────────────────────────────
+
+  static int _xpForNextLevel(int currentLevel) {
+    const thresholds = [0, 200, 400, 800, 2000, 3500, 5500, 8000, 12000, 18000];
+    if (currentLevel >= 1 && currentLevel < thresholds.length) {
+      return thresholds[currentLevel];
+    }
+    return 999999;
+  }
+
+  static String _titleForLevel(int level) {
+    const titles = [
+      '',
+      'Freshman Reviewer',
+      'Dedicated Student',
+      'Quiz Enthusiast',
+      'Level 4 Scholar',
+      'Honor Scholar',
+      'Master Strategist',
+      'Knowledge Titan',
+      "Dean's Lister",
+      'Grandmaster Reviewer',
+      'Valedictorian Elite',
+    ];
+    return (level >= 1 && level <= 10) ? titles[level] : 'Scholar';
+  }
+
+  // ── Quiz completion handler ───────────────────────────────────────
+
+  void recordQuizCompletion({
+    required int accuracyPercent,
+    required int xpEarned,
+    required bool wasUnderTwoMinutes,
+    int antiCheatPenalty = 0,
+    int antiCheatWarnings = 0,
+  }) {
+    var p = _progress;
+
+    final int adjustedXpEarned = max(0, xpEarned - antiCheatPenalty);
+    final int newQuizzesCompleted = p.quizzesCompleted + 1;
+    final int newPerfectQuizzes =
+        p.perfectQuizzes + (accuracyPercent == 100 ? 1 : 0);
+    final int newAccuracyMasterCount =
+        p.accuracyMasterCount + (accuracyPercent >= 90 ? 1 : 0);
+    final int newXP = p.xp + adjustedXpEarned;
+
+    // Level-up loop
+    int newLevel = p.level;
+    int newXPToNext = p.xpToNext;
+    while (newXP >= newXPToNext && newLevel < 10) {
+      newLevel++;
+      newXPToNext = _xpForNextLevel(newLevel);
+    }
+    final String newLevelTitle = _titleForLevel(newLevel);
+
+    // Badge unlock / progress update
+    final updatedBadges = p.badges.map((b) {
+      if (b.isUnlocked) return b;
+
+      bool shouldUnlock = false;
+      String progressText = b.currentProgressText;
+      double progress = b.progress;
+
+      switch (b.title) {
+        case 'First Steps':
+          progress = (newQuizzesCompleted / 1).clamp(0.0, 1.0);
+          progressText = '$newQuizzesCompleted/1 Quiz';
+          if (newQuizzesCompleted >= 1) shouldUnlock = true;
+          break;
+        case 'Quiz Master':
+          progress = (newPerfectQuizzes / 5).clamp(0.0, 1.0);
+          progressText = '$newPerfectQuizzes/5 Quizzes';
+          if (newPerfectQuizzes >= 5) shouldUnlock = true;
+          break;
+        case 'Speed Demon':
+          if (wasUnderTwoMinutes) shouldUnlock = true;
+          progress = wasUnderTwoMinutes ? 1.0 : 0.0;
+          progressText = wasUnderTwoMinutes ? '1/1 Fast Quiz' : '0/1 Fast Quiz';
+          break;
+        case 'Accuracy Master':
+          progress = (newAccuracyMasterCount / 10).clamp(0.0, 1.0);
+          progressText = '$newAccuracyMasterCount/10 Quizzes';
+          if (newAccuracyMasterCount >= 10) shouldUnlock = true;
+          break;
+      }
+
+      if (shouldUnlock) {
+        return b.copyWith(
+          isUnlocked: true,
+          unlockedDate: 'Unlocked Just now',
+          progress: 1.0,
+          currentProgressText: progressText,
+        );
+      }
+      return b.copyWith(progress: progress, currentProgressText: progressText);
+    }).toList();
+
+    _progress = p.copyWith(
+      level: newLevel,
+      levelTitle: newLevelTitle,
+      xp: newXP,
+      xpToNext: newXPToNext,
+      quizzesCompleted: newQuizzesCompleted,
+      perfectQuizzes: newPerfectQuizzes,
+      accuracyMasterCount: newAccuracyMasterCount,
+      weakConcepts: p.weakConcepts,
+      badges: updatedBadges,
+    );
     notifyListeners();
   }
 }

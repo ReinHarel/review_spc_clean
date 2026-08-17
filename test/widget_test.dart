@@ -1,8 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:review_spc_clean/models/game_progress.dart';
 
 void main() {
-  testWidgets('Placeholder test', (WidgetTester tester) async {
-    
-    expect(true, isTrue);
-  });
+  test(
+    'recordQuizCompletion stores final accuracy and anti-cheat adjusted XP',
+    () {
+      final before = GameProgressStore.instance.progress;
+
+      GameProgressStore.instance.recordQuizCompletion(
+        accuracyPercent: 92,
+        xpEarned: 140,
+        antiCheatPenalty: 40,
+        antiCheatWarnings: 2,
+        wasUnderTwoMinutes: true,
+      );
+
+      final after = GameProgressStore.instance.progress;
+
+      expect(after.quizzesCompleted, before.quizzesCompleted + 1);
+      expect(after.accuracyMasterCount, before.accuracyMasterCount + 1);
+      expect(after.xp, before.xp + 100);
+      expect(after.level >= before.level, isTrue);
+    },
+  );
 }
