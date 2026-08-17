@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/game_progress.dart';
+
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
 
@@ -8,50 +10,12 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
-  final List<Map<String, dynamic>> _badges = [
-    {
-      'title': '7-Day Streak',
-      'desc': 'Studied for 7 consecutive days without breaking streak.',
-      'icon': Icons.local_fire_department_rounded,
-      'color': Colors.orange,
-      'isUnlocked': true,
-      'unlockedDate': 'Unlocked Aug 5, 2026',
-    },
-    {
-      'title': 'Quiz Master',
-      'desc': 'Scored a perfect 100% score on 5 different AI Quizzes.',
-      'icon': Icons.psychology_rounded,
-      'color': Colors.purple,
-      'isUnlocked': true,
-      'unlockedDate': 'Unlocked Aug 8, 2026',
-    },
-    {
-      'title': 'AI Whisperer',
-      'desc': 'Generated 20 customized flashcards using AI Study Hub.',
-      'icon': Icons.auto_awesome_rounded,
-      'color': Colors.amber,
-      'isUnlocked': true,
-      'unlockedDate': 'Unlocked Aug 9, 2026',
-    },
-    {
-      'title': 'Night Owl',
-      'desc': 'Completed an intensive study review past 10:00 PM.',
-      'icon': Icons.nights_stay_rounded,
-      'color': Colors.indigo,
-      'isUnlocked': false,
-      'progressText': '3/5 Late Sessions',
-    },
-    {
-      'title': 'Upload Champ',
-      'desc': 'Uploaded and processed 10 reviewer documents.',
-      'icon': Icons.cloud_upload_rounded,
-      'color': Colors.teal,
-      'isUnlocked': false,
-      'progressText': '4/10 Files',
-    },
-  ];
+  GameProgressStore get _store => GameProgressStore.instance;
 
-  void _showBadgeDialog(Map<String, dynamic> badge) {
+  List<BadgeData> get _featuredBadges => _store.progress.unlockedBadges;
+
+  void _showBadgeDialog(BadgeData badge) {
+    final bool isUnlocked = badge.isUnlocked;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -63,27 +27,25 @@ class _ProfileViewState extends State<ProfileView> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: (badge['isUnlocked'] as bool)
-                    ? (badge['color'] as Color).withValues(alpha: 0.15)
+                color: isUnlocked
+                    ? badge.color.withValues(alpha: 0.15)
                     : Colors.grey.shade200,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                badge['icon'] as IconData,
+                badge.icon,
                 size: 52,
-                color: (badge['isUnlocked'] as bool)
-                    ? (badge['color'] as Color)
-                    : Colors.grey.shade500,
+                color: isUnlocked ? badge.color : Colors.grey.shade500,
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              badge['title'] as String,
+              badge.title,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
             ),
             const SizedBox(height: 6),
             Text(
-              badge['desc'] as String,
+              badge.desc,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
@@ -91,20 +53,20 @@ class _ProfileViewState extends State<ProfileView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: (badge['isUnlocked'] as bool) ? Colors.green.shade50 : Colors.grey.shade100,
+                color: isUnlocked ? Colors.green.shade50 : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: (badge['isUnlocked'] as bool) ? Colors.green.shade300 : Colors.grey.shade300,
+                  color: isUnlocked ? Colors.green.shade300 : Colors.grey.shade300,
                 ),
               ),
               child: Text(
-                badge['isUnlocked']
-                    ? (badge['unlockedDate'] as String)
-                    : (badge['progressText'] ?? 'Locked'),
+                isUnlocked
+                    ? badge.unlockedDate
+                    : (badge.currentProgressText.isEmpty ? 'Locked' : badge.currentProgressText),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: (badge['isUnlocked'] as bool) ? Colors.green.shade700 : Colors.grey.shade700,
+                  color: isUnlocked ? Colors.green.shade700 : Colors.grey.shade700,
                 ),
               ),
             ),
@@ -130,7 +92,11 @@ class _ProfileViewState extends State<ProfileView> {
         centerTitle: true,
         title: const Text('Student Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
       ),
-      body: SingleChildScrollView(
+      body: ListenableBuilder(
+        listenable: _store,
+        builder: (context, _) {
+          final GameProgress progress = _store.progress;
+          return SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 850),
@@ -190,25 +156,31 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('XP Progress to Level 5', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                            Text('1,240 / 2,000 XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F))),
+                            Text(
+                              'XP Progress to Level ${progress.level + 1}',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            ),
+                            Text(
+                              '${progress.xp} / ${progress.xpToNext} XP',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: const LinearProgressIndicator(
-                            value: 1240 / 2000,
+                          child: LinearProgressIndicator(
+                            value: progress.xpProgress,
                             minHeight: 10,
-                            backgroundColor: Color(0xFFE2E8F0),
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
+                            backgroundColor: const Color(0xFFE2E8F0),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text('760 XP to Honor Scholar', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        Text('${progress.xpToNext - progress.xp} XP to Honor Scholar', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                       ],
                     ),
                   ),
@@ -217,84 +189,124 @@ class _ProfileViewState extends State<ProfileView> {
                   // 3. STATS CARDS
                   Row(
                     children: [
-                      _buildStatCard('Total XP', '1,240', Icons.stars_rounded, Colors.amber),
+                      _buildStatCard('Total XP', '${progress.xp}', Icons.stars_rounded, Colors.amber),
                       const SizedBox(width: 10),
                       _buildStatCard('Streak', '5 🔥', Icons.local_fire_department_rounded, Colors.orange),
                       const SizedBox(width: 10),
-                      _buildStatCard('Mastered', '3 ⭐', Icons.military_tech_rounded, Colors.blue),
+                      _buildStatCard('Mastered', '${progress.unlockedCount} ⭐', Icons.military_tech_rounded, Colors.blue),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // 4. ACHIEVEMENTS & BADGES SECTION
-                  const Text(
-                    'Unlocked Badges & Achievements 🏆',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 110,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _badges.length,
-                      itemBuilder: (context, index) {
-                        final badge = _badges[index];
-                        final bool isUnlocked = badge['isUnlocked'];
-                        final Color color = badge['color'];
-
-                        return GestureDetector(
-                          onTap: () => _showBadgeDialog(badge),
-                          child: Container(
-                            width: 100,
-                            margin: const EdgeInsets.only(right: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: isUnlocked ? color.withValues(alpha: 0.4) : Colors.grey.shade300,
-                                width: isUnlocked ? 1.5 : 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isUnlocked ? color.withValues(alpha: 0.1) : Colors.transparent,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
+                  // 4. FEATURED BADGES SHOWCASE
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.emoji_events_rounded, size: 20, color: Color(0xFF1E5E2F)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Featured Badges',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isUnlocked ? color.withValues(alpha: 0.12) : Colors.grey.shade100,
-                                    shape: BoxShape.circle,
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Lv${progress.level} • ${progress.xp} XP',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${progress.unlockedCount} of ${progress.totalBadges} badges unlocked',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_featuredBadges.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: Text(
+                                'Complete quizzes to earn your first badge!',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                              ),
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            height: 100,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _featuredBadges.length,
+                              itemBuilder: (context, index) {
+                                final badge = _featuredBadges[index];
+                                final Color color = badge.color;
+
+                                return GestureDetector(
+                                  onTap: () => _showBadgeDialog(badge),
+                                  child: Container(
+                                    width: 90,
+                                    margin: const EdgeInsets.only(right: 10),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FDF8),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.08),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(badge.icon, size: 22, color: color),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          badge.title,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  child: Icon(
-                                    badge['icon'] as IconData,
-                                    size: 24,
-                                    color: isUnlocked ? color : Colors.grey.shade400,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  badge['title'],
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isUnlocked ? const Color(0xFF1E293B) : Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
+                                );
+                              },
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -306,20 +318,31 @@ class _ProfileViewState extends State<ProfileView> {
                   ),
                   const SizedBox(height: 10),
                   Container(
+                    constraints: const BoxConstraints(maxHeight: 320),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
                     ),
-                    child: Column(
-                      children: [
-                        _buildRankTile('Lv1 — Freshman Reviewer', false),
-                        _buildRankTile('Lv2 — Dedicated Student', false),
-                        _buildRankTile('Lv3 — Quiz Enthusiast', false),
-                        _buildRankTile('Lv4 — Academic Warrior ← You', true),
-                        _buildRankTile('Lv5 — Honor Scholar', false),
-                      ],
+                    child: ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildRankTile('Lv1 — Freshman Reviewer', false),
+                            _buildRankTile('Lv2 — Dedicated Student', false),
+                            _buildRankTile('Lv3 — Quiz Enthusiast', false),
+                            _buildRankTile('Lv4 — Academic Warrior ← You', true),
+                            _buildRankTile('Lv5 — Honor Scholar', false),
+                            _buildRankTile('Lv6 — Master Strategist', false),
+                            _buildRankTile('Lv7 — Knowledge Titan', false),
+                            _buildRankTile('Lv8 — Dean\'s Lister', false),
+                            _buildRankTile('Lv9 — Grandmaster Reviewer', false),
+                            _buildRankTile('Lv10 — Valedictorian Elite', false),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -386,6 +409,8 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           ),
         ),
+      );
+      },
       ),
     );
   }

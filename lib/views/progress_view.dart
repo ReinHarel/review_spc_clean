@@ -39,24 +39,26 @@ class _ProgressViewState extends State<ProgressView> {
             width: double.infinity,
             color: const Color(0xFF1E5E2F),
             padding: const EdgeInsets.only(bottom: 16, top: 4),
-            child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_chips.length, (index) {
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  ...List.generate(_chips.length, (index) {
                     final isSelected = _selectedChipIndex == index;
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
                         showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
                         avatar: Icon(
                           _chipIcons[index],
                           size: 16,
                           color: isSelected ? const Color(0xFF1E5E2F) : Colors.white,
                         ),
                         label: Text(_chips[index]),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
                         selected: isSelected,
                         selectedColor: Colors.white,
                         backgroundColor: const Color(0xFF144120), // Dark background para readable ang white text
@@ -79,7 +81,8 @@ class _ProgressViewState extends State<ProgressView> {
                       ),
                     );
                   }),
-                ),
+                  const SizedBox(width: 6),
+                ],
               ),
             ),
           ),
