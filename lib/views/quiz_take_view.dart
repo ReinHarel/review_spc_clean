@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../models/game_progress.dart';
 
@@ -85,7 +86,7 @@ class QuizTakeView extends StatefulWidget {
 }
 
 class _QuizTakeViewState extends State<QuizTakeView>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   // ── Quiz state ─────────────────────────────────────────────────────
   int _currentIndex = 0;
   int? _selectedOption;
@@ -109,6 +110,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
   // ── Active-recall state ────────────────────────────────────────────
   final TextEditingController _recallController = TextEditingController();
   bool _recallChecked = false;
+  bool _isAnalyzing = false;
   double _similarityScore = 0.0;
   List<Map<String, String>> _keyConceptResults = [];
 
@@ -116,6 +118,12 @@ class _QuizTakeViewState extends State<QuizTakeView>
   final TextEditingController _fillBlankController = TextEditingController();
   bool _fillBlankChecked = false;
   bool _fillBlankCorrect = false;
+
+  // ── Voice / AI support for active recall ──────────────────────────
+  final SpeechToText _speechToText = SpeechToText();
+  bool _isListening = false;
+  late final AnimationController _micPulseController;
+  late final Animation<double> _micPulseAnimation;
 
   // ── Question bank ──────────────────────────────────────────────────
   late final List<Map<String, dynamic>> _questions;
@@ -129,6 +137,14 @@ class _QuizTakeViewState extends State<QuizTakeView>
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+
+    _micPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _micPulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _micPulseController, curve: Curves.easeInOut),
+    );
 
     _questions = [
       {
@@ -205,7 +221,9 @@ class _QuizTakeViewState extends State<QuizTakeView>
   @override
   void dispose() {
     _ticker.cancel();
+    _micPulseController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    _speechToText.stop();
     _recallController.dispose();
     _fillBlankController.dispose();
     super.dispose();
@@ -459,12 +477,18 @@ class _QuizTakeViewState extends State<QuizTakeView>
     }).toList();
   }
 
-  void _checkRecallAnswer() {
+  Future<void> _checkRecallAnswer() async {
     final q = _questions[_currentIndex];
     final user = _recallController.text;
     final model = q['modelAnswer'] as String;
     final concepts = List<String>.from(q['keyConcepts'] as List);
+    setState(() => _isAnalyzing = true);
+    _micPulseController.repeat(reverse: true);
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    _micPulseController.stop();
     setState(() {
+      _isAnalyzing = false;
       _similarityScore = _calcSimilarity(user, model);
       _keyConceptResults = _conceptResults(user, concepts);
       _recallChecked = true;
@@ -474,6 +498,66 @@ class _QuizTakeViewState extends State<QuizTakeView>
         _recordMistakeForCurrentQuestion();
       }
     });
+  }
+
+  Future<void> _toggleRecallMic() async {
+    if (_isListening) {
+      await _speechToText.stop();
+      _micPulseController.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    final available = await _speechToText.initialize();
+    if (!available) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Speech recognition is not available on this device.'),
+        ),
+      );
+      return;
+    }
+
+    await _speechToText.listen(
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() {
+          _recallController.text = result.recognizedWords;
+          _recallController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _recallController.text.length),
+          );
+        });
+      },
+      listenOptions: SpeechListenOptions(
+        listenFor: const Duration(seconds: 20),
+        pauseFor: const Duration(seconds: 3),
+        localeId: 'en_US',
+        cancelOnError: true,
+        partialResults: true,
+      ),
+    );
+
+    _micPulseController.repeat(reverse: true);
+    setState(() => _isListening = true);
+  }
+
+  String _tutorFeedbackForRecall(String answer, List<String> keyConcepts) {
+    final normalized = answer.toLowerCase();
+    final foundConcepts = keyConcepts
+        .where((concept) => normalized.contains(concept.toLowerCase()))
+        .toList();
+
+    if (foundConcepts.length >= 3) {
+      return 'Excellent coverage. You captured the core ideas: ${foundConcepts.take(3).join(', ')}.';
+    }
+    if (foundConcepts.length >= 2) {
+      return 'Good start. You captured several key points, but add a bit more detail on how the concept works in practice.';
+    }
+    if (foundConcepts.isNotEmpty) {
+      return 'You mentioned one important idea, but your explanation needs a clearer link to the central concept and its outcome.';
+    }
+    return 'Your answer is still too general. Add the core concept, the mechanism, and one practical example to make it stronger.';
   }
 
   void _checkFillBlankAnswer() {
@@ -514,6 +598,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
         _selectedOption = null;
         _answered = false;
         _recallChecked = false;
+        _isAnalyzing = false;
         _similarityScore = 0.0;
         _keyConceptResults = [];
         _recallController.clear();
@@ -840,6 +925,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
     }
     if (t == 'recall') {
       if (_recallChecked) return _nextQuestion;
+      if (_isAnalyzing) return null;
       return _recallController.text.trim().isNotEmpty
           ? _checkRecallAnswer
           : null;
@@ -868,7 +954,9 @@ class _QuizTakeViewState extends State<QuizTakeView>
       return _sequenceChecked ? 'Next Question ➔' : 'Check Order';
     }
     if (t == 'recall') {
-      return _recallChecked ? 'Next Question ➔' : 'Check Model Answer';
+      if (_recallChecked) return 'Next Question ➔';
+      if (_isAnalyzing) return 'Scoring Answer…';
+      return 'Check Model Answer';
     }
     if (t == 'fill_blank') {
       return _fillBlankChecked ? 'Next Question ➔' : 'Check Answer';
@@ -1136,6 +1224,12 @@ class _QuizTakeViewState extends State<QuizTakeView>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E5E2F),
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(
+                          0xFF1E5E2F,
+                        ).withValues(alpha: 0.35),
+                        disabledForegroundColor: Colors.white.withValues(
+                          alpha: 0.85,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -1588,34 +1682,264 @@ class _QuizTakeViewState extends State<QuizTakeView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: _recallController,
-          enabled: !_recallChecked,
-          maxLines: 5,
-          minLines: 3,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: 'Type your answer here...',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF1E5E2F), width: 2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            'Question ${_currentIndex + 1} of ${_questions.length}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
             ),
           ),
         ),
-        if (_recallChecked) ...[const SizedBox(height: 16), _recallFeedback(q)],
+        const SizedBox(height: 12),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            TextField(
+              controller: _recallController,
+              enabled: !_recallChecked,
+              maxLines: 5,
+              minLines: 3,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Type or speak your answer here...',
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.only(
+                  left: 16,
+                  right: 56,
+                  top: 16,
+                  bottom: 48,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E5E2F),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: AnimatedBuilder(
+                animation: _micPulseAnimation,
+                builder: (context, child) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Transform.scale(
+                      scale: _isListening ? _micPulseAnimation.value : 1.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isListening
+                              ? const Color(0xFFDC2626)
+                              : Colors.white,
+                          border: Border.all(
+                            color: _isListening
+                                ? Colors.red
+                                : Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                          boxShadow: _isListening
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.red.withValues(alpha: 0.4),
+                                    blurRadius: 12,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: IconButton(
+                          onPressed: _toggleRecallMic,
+                          tooltip: _isListening
+                              ? 'Stop recording'
+                              : 'Speak answer',
+                          icon: Icon(
+                            _isListening
+                                ? Icons.mic_off_rounded
+                                : Icons.mic_rounded,
+                            color: _isListening
+                                ? Colors.white
+                                : const Color(0xFF1E5E2F),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        if (_isListening) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              AnimatedBuilder(
+                animation: _micPulseAnimation,
+                builder: (context, child) => Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withValues(
+                          alpha: 0.3 + _micPulseAnimation.value * 0.3,
+                        ),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Recording… Speak now',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (_isAnalyzing) ...[
+          const SizedBox(height: 16),
+          _buildAnalyzingIndicator(),
+        ] else if (_recallChecked) ...[
+          const SizedBox(height: 16),
+          _recallFeedback(q),
+          const SizedBox(height: 12),
+          _aiTutorEvaluation(q),
+          const SizedBox(height: 16),
+        ],
       ],
+    );
+  }
+
+  Widget _buildAnalyzingIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          AnimatedBuilder(
+            animation: _micPulseAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _micPulseAnimation.value,
+                child: const Icon(
+                  Icons.smart_toy_rounded,
+                  color: Color(0xFF7C3AED),
+                  size: 20,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'AI Tutor is scoring your response…',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF6D28D9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _aiTutorEvaluation(Map<String, dynamic> q) {
+    final concepts = List<String>.from(q['keyConcepts'] as List);
+    final message = _tutorFeedbackForRecall(_recallController.text, concepts);
+    final coverage = concepts
+        .where(
+          (concept) => _recallController.text.toLowerCase().contains(
+            concept.toLowerCase(),
+          ),
+        )
+        .length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.smart_toy_rounded, color: Color(0xFF7C3AED), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'AI Tutor Evaluation',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Concept coverage: $coverage/${concepts.length}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF6D28D9),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.5,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1624,6 +1948,22 @@ class _QuizTakeViewState extends State<QuizTakeView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0EA5E9).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            'Question ${_currentIndex + 1} of ${_questions.length}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+        ),
         TextField(
           controller: _fillBlankController,
           enabled: !_fillBlankChecked,
@@ -1690,6 +2030,27 @@ class _QuizTakeViewState extends State<QuizTakeView>
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E5E2F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _nextQuestion,
+              child: Text(
+                _currentIndex < _questions.length - 1
+                    ? 'Next Question'
+                    : 'Continue',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],

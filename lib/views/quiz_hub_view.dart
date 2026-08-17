@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../models/game_progress.dart';
 import 'quiz_take_view.dart';
@@ -58,6 +59,10 @@ class _QuizHubViewState extends State<QuizHubView>
   // Active Recall State
   final TextEditingController _recallController = TextEditingController();
   bool _showRecallAnswer = false;
+  final SpeechToText _speechToText = SpeechToText();
+  bool _isListening = false;
+  late final AnimationController _micPulseController;
+  late final Animation<double> _micPulseAnimation;
 
   // Swipe True/False Animation State
   int _swipeCardIndex = 0;
@@ -94,6 +99,29 @@ class _QuizHubViewState extends State<QuizHubView>
 
   final Map<int, String?> _targetSlots = {1: null, 2: null, 3: null, 4: null};
 
+  // Fill in the Blanks State
+  final TextEditingController _fillBlankController = TextEditingController();
+  int _fillBlankIndex = 0;
+  bool _fillBlankSubmitted = false;
+  bool _fillBlankCorrect = false;
+
+  final List<Map<String, String>> _fillBlankQuestions = [
+    {'question': 'Assets = _____ + Equity.', 'answer': 'Liabilities'},
+    {'question': '_____ = Liabilities + Owner\'s Equity.', 'answer': 'Assets'},
+    {
+      'question': '_____ are the resources owned by a business.',
+      'answer': 'Assets',
+    },
+    {
+      'question': 'Amounts owed to outside parties are called _____.',
+      'answer': 'Liabilities',
+    },
+    {
+      'question': 'The accounting equation must always remain in _____.',
+      'answer': 'Balance',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -103,6 +131,14 @@ class _QuizHubViewState extends State<QuizHubView>
     _flipController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
+    );
+
+    _micPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _micPulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _micPulseController, curve: Curves.easeInOut),
     );
 
     _flipAnimation =
@@ -119,7 +155,10 @@ class _QuizHubViewState extends State<QuizHubView>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _flipController.dispose();
+    _micPulseController.dispose();
+    _speechToText.stop();
     _recallController.dispose();
+    _fillBlankController.dispose();
     super.dispose();
   }
 
@@ -839,274 +878,280 @@ class _QuizHubViewState extends State<QuizHubView>
       'Custom Quiz': 8,
     };
 
+    Widget sectionLabel(String text) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget chipRow(List<String> modes) {
+      return SizedBox(
+        height: 45,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              for (final modeName in modes)
+                _buildModeChip(modeName, modeToIndex[modeName] ?? 0),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         // Assessments Section
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Assessments',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 45,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: assessmentModes.length,
-            itemBuilder: (context, index) {
-              final modeName = assessmentModes[index];
-              final modeIndex = modeToIndex[modeName] ?? 0;
-              final isSelected = _selectedMode == modeIndex;
-              return Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: isSelected
-                    ? BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            blurRadius: 12,
-                            spreadRadius: 0,
-                            color: const Color(
-                              0xFF1E5E2F,
-                            ).withValues(alpha: 0.25),
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      )
-                    : null,
-                child: FilterChip(
-                  selected: isSelected,
-                  label: Text(modeName),
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  selectedColor: const Color(0xFF1E5E2F),
-                  backgroundColor: Colors.white,
-                  side: BorderSide(
-                    color: isSelected
-                        ? const Color(0xFF1E5E2F)
-                        : Colors.grey.shade300,
-                    width: 1.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedMode = modeIndex;
-                    });
-                  },
-                ),
-              );
-            },
-          ),
-        ),
+        sectionLabel('Assessments'),
+        chipRow(assessmentModes),
 
         // Practice Modes Section
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Practice Modes',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 45,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: practiceModes.length,
-            itemBuilder: (context, index) {
-              final modeName = practiceModes[index];
-              final modeIndex = modeToIndex[modeName] ?? 0;
-              final isSelected = _selectedMode == modeIndex;
-              return Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: isSelected
-                    ? BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            blurRadius: 12,
-                            spreadRadius: 0,
-                            color: const Color(
-                              0xFF1E5E2F,
-                            ).withValues(alpha: 0.25),
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      )
-                    : null,
-                child: FilterChip(
-                  selected: isSelected,
-                  label: Text(modeName),
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  selectedColor: const Color(0xFF1E5E2F),
-                  backgroundColor: Colors.white,
-                  side: BorderSide(
-                    color: isSelected
-                        ? const Color(0xFF1E5E2F)
-                        : Colors.grey.shade300,
-                    width: 1.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedMode = modeIndex;
-                    });
-                  },
-                ),
-              );
-            },
-          ),
-        ),
+        sectionLabel('Practice Modes'),
+        chipRow(practiceModes),
       ],
     );
   }
 
-  Widget _buildFillInTheBlanksView() {
-    final question = 'Assets = _____ + Equity.';
-    final answer = 'Liabilities';
-    final controller = TextEditingController();
-    return StatefulBuilder(
-      builder: (context, setInnerState) {
-        final isSubmitted = controller.text.trim().isNotEmpty;
-        final isCorrect =
-            controller.text.trim().toLowerCase() == answer.toLowerCase();
+  Widget _buildModeChip(String modeName, int modeIndex) {
+    final isSelected = _selectedMode == modeIndex;
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      decoration: isSelected
+          ? BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                  color: const Color(0xFF1E5E2F).withValues(alpha: 0.25),
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            )
+          : null,
+      child: FilterChip(
+        selected: isSelected,
+        label: Text(modeName),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.black87,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          fontSize: 12,
+        ),
+        selectedColor: const Color(0xFF1E5E2F),
+        backgroundColor: Colors.white,
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+          width: 1.5,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        onSelected: (bool selected) {
+          setState(() {
+            _selectedMode = modeIndex;
+          });
+        },
+      ),
+    );
+  }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildFillInTheBlanksView() {
+    final total = _fillBlankQuestions.length;
+    final current = _fillBlankIndex + 1;
+    final questionData = _fillBlankQuestions[_fillBlankIndex];
+    final question = questionData['question']!;
+    final answer = questionData['answer']!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'Practice: Fill in the Blanks',
               style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: 0.7,
-                backgroundColor: Colors.grey.shade200,
-                color: const Color(0xFF1E5E2F),
-                minHeight: 6,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Text(
-                question,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              onChanged: (_) => setInnerState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Type the missing term...',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF1E5E2F),
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSubmitted
-                    ? (isCorrect
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFFEBEE))
-                    : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isSubmitted
-                      ? (isCorrect ? const Color(0xFF1E5E2F) : Colors.red)
-                      : Colors.grey.shade200,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isSubmitted
-                        ? (isCorrect ? Icons.check_circle : Icons.cancel)
-                        : Icons.lightbulb_outline,
-                    color: isSubmitted
-                        ? (isCorrect ? const Color(0xFF1E5E2F) : Colors.red)
-                        : const Color(0xFF1E5E2F),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      isSubmitted
-                          ? (isCorrect
-                                ? 'Correct! You earned 10 XP.'
-                                : 'Incorrect. The correct answer is Liabilities.')
-                          : 'Use the missing term that balances the equation.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isSubmitted
-                            ? (isCorrect
-                                  ? const Color(0xFF1E5E2F)
-                                  : Colors.red.shade900)
-                            : const Color(0xFF1E293B),
-                      ),
-                    ),
-                  ),
-                ],
+            Text(
+              'Question $current of $total',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Color(0xFF1E5E2F),
               ),
             ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: current / total,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFF1E5E2F),
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Text(
+            question,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _fillBlankController,
+          enabled: !_fillBlankSubmitted,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Type the missing term...',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1E5E2F), width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _fillBlankSubmitted
+                ? (_fillBlankCorrect
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFEBEE))
+                : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: _fillBlankSubmitted
+                  ? (_fillBlankCorrect ? const Color(0xFF1E5E2F) : Colors.red)
+                  : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                _fillBlankSubmitted
+                    ? (_fillBlankCorrect ? Icons.check_circle : Icons.cancel)
+                    : Icons.lightbulb_outline,
+                color: _fillBlankSubmitted
+                    ? (_fillBlankCorrect ? const Color(0xFF1E5E2F) : Colors.red)
+                    : const Color(0xFF1E5E2F),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _fillBlankSubmitted
+                      ? (_fillBlankCorrect
+                            ? 'Correct! You earned 10 XP.'
+                            : 'Incorrect. The correct answer is $answer.')
+                      : 'Use the missing term that completes the statement.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _fillBlankSubmitted
+                        ? (_fillBlankCorrect
+                              ? const Color(0xFF1E5E2F)
+                              : Colors.red.shade900)
+                        : const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_fillBlankSubmitted) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E5E2F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _nextFillBlankQuestion,
+              child: Text(
+                _fillBlankIndex < total - 1 ? 'Next Question' : 'Start Over',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ] else ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E5E2F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _fillBlankController.text.trim().isEmpty
+                  ? null
+                  : _checkFillBlankAnswer,
+              child: const Text(
+                'Check Answer',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
+  }
+
+  void _checkFillBlankAnswer() {
+    final q = _fillBlankQuestions[_fillBlankIndex];
+    final answer = q['answer']!;
+    setState(() {
+      _fillBlankCorrect =
+          _fillBlankController.text.trim().toLowerCase() ==
+          answer.toLowerCase();
+      _fillBlankSubmitted = true;
+    });
+  }
+
+  void _nextFillBlankQuestion() {
+    setState(() {
+      _fillBlankController.clear();
+      _fillBlankSubmitted = false;
+      _fillBlankCorrect = false;
+      _fillBlankIndex = (_fillBlankIndex + 1) % _fillBlankQuestions.length;
+    });
   }
 
   // --- 0. Multiple Choice View ---
@@ -1273,8 +1318,61 @@ class _QuizHubViewState extends State<QuizHubView>
     );
   }
 
+  Future<void> _toggleRecallMic() async {
+    if (_isListening) {
+      await _speechToText.stop();
+      _micPulseController.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    final available = await _speechToText.initialize();
+    if (!available) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Speech recognition is not available on this device.'),
+        ),
+      );
+      return;
+    }
+
+    await _speechToText.listen(
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() {
+          _recallController.text = result.recognizedWords;
+          _recallController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _recallController.text.length),
+          );
+        });
+      },
+      listenOptions: SpeechListenOptions(
+        listenFor: const Duration(seconds: 20),
+        pauseFor: const Duration(seconds: 3),
+        localeId: 'en_US',
+        cancelOnError: true,
+        partialResults: true,
+      ),
+    );
+
+    _micPulseController.repeat(reverse: true);
+    setState(() => _isListening = true);
+  }
+
   // --- 1. Active Recall View ---
   Widget _buildActiveRecallView() {
+    final answer = _recallController.text;
+    final aiFeedback =
+        QuizTakeView.isFillBlankAnswerCorrect(answer, const [
+          'debt',
+          'equity',
+          'interest',
+          'ownership',
+        ])
+        ? 'Strong answer. You explained the underlying trade-off between debt and equity clearly.'
+        : 'Good start. Add a clearer comparison between obligation and ownership, and mention how financing cost and control differ.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1311,41 +1409,208 @@ class _QuizHubViewState extends State<QuizHubView>
           ),
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: _recallController,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Type your explanation here...',
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            TextField(
+              controller: _recallController,
+              maxLines: 4,
+              minLines: 3,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Type or speak your explanation here...',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.only(
+                  left: 16,
+                  right: 56,
+                  top: 16,
+                  bottom: 48,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E5E2F),
+                    width: 2,
+                  ),
+                ),
+              ),
             ),
-          ),
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: AnimatedBuilder(
+                animation: _micPulseAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _isListening ? _micPulseAnimation.value : 1.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isListening
+                            ? const Color(0xFFDC2626)
+                            : Colors.white,
+                        border: Border.all(
+                          color: _isListening
+                              ? Colors.red
+                              : Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        boxShadow: _isListening
+                            ? [
+                                BoxShadow(
+                                  color: Colors.red.withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: IconButton(
+                        onPressed: _toggleRecallMic,
+                        tooltip: _isListening
+                            ? 'Stop recording'
+                            : 'Speak answer',
+                        icon: Icon(
+                          _isListening
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded,
+                          color: _isListening
+                              ? Colors.white
+                              : const Color(0xFF1E5E2F),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
+        if (_isListening) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              AnimatedBuilder(
+                animation: _micPulseAnimation,
+                builder: (context, child) => Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withValues(
+                          alpha: 0.3 + _micPulseAnimation.value * 0.3,
+                        ),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Recording… Speak now',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E5E2F),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(
+                0xFF1E5E2F,
+              ).withValues(alpha: 0.35),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.85),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              setState(() {
-                _showRecallAnswer = !_showRecallAnswer;
-              });
-            },
+            onPressed: answer.trim().isEmpty
+                ? null
+                : () {
+                    setState(() {
+                      _showRecallAnswer = !_showRecallAnswer;
+                    });
+                  },
             child: Text(
               _showRecallAnswer ? 'Hide Model Answer' : 'Check Model Answer',
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ),
+        if (answer.trim().isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F3FF),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.smart_toy_rounded,
+                      color: Color(0xFF7C3AED),
+                      size: 18,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'AI Tutor Evaluation',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Coverage score: ${(answer.length / 60 * 100).clamp(0, 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6D28D9),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  aiFeedback,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (_showRecallAnswer) ...[
           const SizedBox(height: 16),
           Container(
@@ -2006,7 +2271,7 @@ class _QuizHubViewState extends State<QuizHubView>
     double accuracy,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -2019,9 +2284,9 @@ class _QuizHubViewState extends State<QuizHubView>
               const Icon(
                 Icons.local_fire_department_rounded,
                 color: Colors.orange,
-                size: 20,
+                size: 22,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2029,12 +2294,18 @@ class _QuizHubViewState extends State<QuizHubView>
                     '$streakDays Days',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 15,
+                      color: Color(0xFF1E293B),
                     ),
                   ),
-                  const Text(
+                  const SizedBox(height: 2),
+                  Text(
                     'Streak',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
                 ],
               ),
@@ -2042,8 +2313,8 @@ class _QuizHubViewState extends State<QuizHubView>
           ),
           Row(
             children: [
-              const Icon(Icons.bolt_rounded, color: Colors.amber, size: 20),
-              const SizedBox(width: 6),
+              const Icon(Icons.bolt_rounded, color: Colors.amber, size: 22),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2051,12 +2322,18 @@ class _QuizHubViewState extends State<QuizHubView>
                     '+${progress.xp} XP',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 15,
+                      color: Color(0xFF1E293B),
                     ),
                   ),
-                  const Text(
+                  const SizedBox(height: 2),
+                  Text(
                     'Earned',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
                 ],
               ),
@@ -2068,9 +2345,9 @@ class _QuizHubViewState extends State<QuizHubView>
                 const Icon(
                   Icons.center_focus_strong_rounded,
                   color: Colors.green,
-                  size: 20,
+                  size: 22,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2078,12 +2355,18 @@ class _QuizHubViewState extends State<QuizHubView>
                       '${accuracy.round()}%',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 15,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
-                    const Text(
+                    const SizedBox(height: 2),
+                    Text(
                       'Accuracy',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
                   ],
                 ),
