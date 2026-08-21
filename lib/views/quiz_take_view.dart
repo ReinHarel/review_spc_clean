@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -102,9 +103,8 @@ class _QuizTakeViewState extends State<QuizTakeView>
   static const int _xpPenaltyPerViolation = 20;
 
   // ── Sequence state ─────────────────────────────────────────────────
-  List<String?> _targetSlots = [];
+  List<String> _targetSlots = [];
   List<String> _availableItems = [];
-  int? _selectedAvailableIndex;
   bool _sequenceChecked = false;
 
   // ── Active-recall state ────────────────────────────────────────────
@@ -128,6 +128,78 @@ class _QuizTakeViewState extends State<QuizTakeView>
   // ── Question bank ──────────────────────────────────────────────────
   late final List<Map<String, dynamic>> _questions;
   late final int _maxPoints;
+
+  // ── Theme-driven styling (follows global dark mode) ──────────────
+  bool get _eliteMode => Theme.of(context).brightness == Brightness.dark;
+
+  Color get _accent =>
+      _eliteMode ? const Color(0xFF2ECC71) : const Color(0xFF1E5E2F);
+  Color get _bgTop => Theme.of(context).scaffoldBackgroundColor;
+  Color get _bgBottom =>
+      _eliteMode ? const Color(0xFF18241D) : const Color(0xFFE2EFE7);
+  Color get _cardFill => _eliteMode
+      ? Theme.of(context).cardColor
+      : Colors.white.withValues(alpha: 0.62);
+  Color get _cardBorder => _eliteMode
+      ? const Color(0xFF2ECC71).withValues(alpha: 0.35)
+      : const Color(0xFF1E5E2F).withValues(alpha: 0.15);
+  Color get _textPrimary =>
+      _eliteMode ? const Color(0xFFECEFF1) : const Color(0xFF0F172A);
+  Color get _textSecondary =>
+      _eliteMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get _inputFill => _eliteMode
+      ? Theme.of(context).cardColor.withValues(alpha: 0.55)
+      : Colors.white.withValues(alpha: 0.75);
+  Color get _glassBorder => _eliteMode
+      ? const Color(0xFF2ECC71).withValues(alpha: 0.25)
+      : Colors.white.withValues(alpha: 0.5);
+
+  Widget _glassWrap({
+    required Widget child,
+    double radius = 24,
+    EdgeInsetsGeometry? padding,
+    Color? fill,
+    Color? border,
+    bool glow = false,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          width: double.infinity,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: fill ?? _cardFill,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: border ?? _glassBorder, width: 1.2),
+            boxShadow: glow
+                ? [
+                    BoxShadow(
+                      color: _accent.withValues(
+                        alpha: _eliteMode ? 0.35 : 0.18,
+                      ),
+                      blurRadius: 22,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: _eliteMode ? 0.35 : 0.06,
+                      ),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -422,18 +494,17 @@ class _QuizTakeViewState extends State<QuizTakeView>
     final q = _questions[questionIndex];
     if (q['type'] != 'sequence') return;
     final list = List<String>.from(q['sequence'] as List);
-    _targetSlots = List<String?>.filled(list.length, null);
+    _targetSlots = <String>[];
     _availableItems = list..shuffle();
-    _selectedAvailableIndex = null;
     _sequenceChecked = false;
   }
 
-  bool get _allSlotsFilled => _targetSlots.every((s) => s != null);
+  bool get _allSlotsFilled => _availableItems.isEmpty;
 
   void _checkSequenceOrder() {
     final q = _questions[_currentIndex];
     final correct = List<String>.from(q['sequence'] as List);
-    final user = List<String>.from(_targetSlots.cast<String>());
+    final user = _targetSlots;
     setState(() {
       _sequenceChecked = true;
       if (user == correct) {
@@ -669,164 +740,171 @@ class _QuizTakeViewState extends State<QuizTakeView>
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: accuracy >= 80
-                    ? const Color(0xFFECFDF5)
-                    : Colors.orange.shade50,
-                border: Border.all(
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: accuracy >= 80
-                      ? const Color(0xFF10B981)
-                      : Colors.orange,
-                  width: 3,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  '$accuracy%',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                      ? const Color(0xFFECFDF5)
+                      : Colors.orange.shade50,
+                  border: Border.all(
                     color: accuracy >= 80
                         ? const Color(0xFF10B981)
                         : Colors.orange,
+                    width: 3,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Accuracy',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.trending_up_rounded,
-                    color: Color(0xFF1E5E2F),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '+$growthPercent% Growth',
-                    style: const TextStyle(
+                child: Center(
+                  child: Text(
+                    '$accuracy%',
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E5E2F),
+                      color: accuracy >= 80
+                          ? const Color(0xFF10B981)
+                          : Colors.orange,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _resultStat(
-              'Total Time Spent',
-              '$m:${s.toString().padLeft(2, '0')}',
-            ),
-            _resultStat('Final Accuracy', '$accuracy%'),
-            _resultStat(
-              'Anti-Cheat Deductions',
-              '-${_antiCheatViolations * _xpPenaltyPerViolation} XP',
-              color: Colors.red,
-            ),
-            _resultStat('Total XP Earned', '+$xpEarned XP'),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Divider(color: Colors.grey.shade200),
-            ),
-            _resultStat('Level', 'Lv${prog.level} — ${prog.levelTitle}'),
-            _resultStat('Total XP', '${prog.xp} XP'),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Recommended Focus Topics',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade600,
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 4),
+              Text(
+                'Accuracy',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: focusTopics
-                    .map(
-                      (topic) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Text(
-                          topic,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            if (_antiCheatViolations > 0) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.all(10),
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: Colors.red.shade700,
+                    const Icon(
+                      Icons.trending_up_rounded,
+                      color: Color(0xFF1E5E2F),
+                      size: 18,
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '$_antiCheatViolations anti-cheat violation(s) were recorded.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.red.shade700,
-                        ),
+                    Text(
+                      '+$growthPercent% Growth',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E5E2F),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              _resultStat(
+                'Total Time Spent',
+                '$m:${s.toString().padLeft(2, '0')}',
+              ),
+              _resultStat('Final Accuracy', '$accuracy%'),
+              _resultStat(
+                'Anti-Cheat Deductions',
+                '-${_antiCheatViolations * _xpPenaltyPerViolation} XP',
+                color: Colors.red,
+              ),
+              _resultStat('Total XP Earned', '+$xpEarned XP'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Divider(color: Colors.grey.shade200),
+              ),
+              _resultStat('Level', 'Lv${prog.level} — ${prog.levelTitle}'),
+              _resultStat('Total XP', '${prog.xp} XP'),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Recommended Focus Topics',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: focusTopics
+                      .map(
+                        (topic) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant,
+                            ),
+                          ),
+                          child: Text(
+                            topic,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              if (_antiCheatViolations > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.red.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$_antiCheatViolations anti-cheat violation(s) were recorded.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           SizedBox(
@@ -978,18 +1056,22 @@ class _QuizTakeViewState extends State<QuizTakeView>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [const Color(0xFFF0F4F1), const Color(0xFFE2EFE7)],
+            colors: [_bgTop, _bgBottom],
           ),
         ),
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF1E5E2F),
+            backgroundColor: _eliteMode
+                ? const Color(0xFF121B16).withValues(alpha: 0.85)
+                : const Color(0xFF1E5E2F),
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.close_rounded, color: Colors.white),
@@ -1056,9 +1138,9 @@ class _QuizTakeViewState extends State<QuizTakeView>
                         children: [
                           Text(
                             'Question ${_currentIndex + 1} of ${_questions.length}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF64748B),
+                              color: _textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -1066,18 +1148,18 @@ class _QuizTakeViewState extends State<QuizTakeView>
                             children: [
                               Text(
                                 '$_pointsEarned pts',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1E5E2F),
+                                  color: _accent,
                                   fontSize: 12,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Text(
                                 _elapsedTime,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF64748B),
+                                  color: _textSecondary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -1127,10 +1209,10 @@ class _QuizTakeViewState extends State<QuizTakeView>
                         child: LinearProgressIndicator(
                           value: (_currentIndex + 1) / _questions.length,
                           minHeight: 6,
-                          backgroundColor: const Color(0xFFE2E8F0),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF1E5E2F),
-                          ),
+                          backgroundColor: _eliteMode
+                              ? const Color(0xFF2F3E37)
+                              : const Color(0xFFE2E8F0),
+                          valueColor: AlwaysStoppedAnimation<Color>(_accent),
                         ),
                       ),
                     ],
@@ -1151,48 +1233,45 @@ class _QuizTakeViewState extends State<QuizTakeView>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: _typeColor(type).withValues(alpha: 0.1),
+                            color: _eliteMode
+                                ? const Color(
+                                    0xFFF1C40F,
+                                  ).withValues(alpha: 0.15)
+                                : _typeColor(type).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _eliteMode
+                                  ? const Color(
+                                      0xFFF1C40F,
+                                    ).withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                            ),
                           ),
                           child: Text(
                             _typeLabel(type),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: _typeColor(type),
+                              color: _eliteMode
+                                  ? const Color(0xFFF1C40F)
+                                  : _typeColor(type),
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
 
-                        // Question card
-                        Container(
-                          width: double.infinity,
+                        // Question card (glassmorphism)
+                        _glassWrap(
                           padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: const Color(
-                                0xFF1E5E2F,
-                              ).withValues(alpha: 0.15),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                blurRadius: 16,
-                                spreadRadius: 2,
-                                color: Colors.black.withValues(alpha: 0.06),
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                          radius: 24,
+                          glow: true,
+                          border: _cardBorder,
                           child: Text(
                             q['question'] as String,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
+                              color: _textPrimary,
                               height: 1.4,
                             ),
                           ),
@@ -1222,11 +1301,13 @@ class _QuizTakeViewState extends State<QuizTakeView>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E5E2F),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(
-                          0xFF1E5E2F,
-                        ).withValues(alpha: 0.35),
+                        backgroundColor: _accent,
+                        foregroundColor: _eliteMode
+                            ? const Color(0xFF121B16)
+                            : Colors.white,
+                        disabledBackgroundColor: _accent.withValues(
+                          alpha: 0.35,
+                        ),
                         disabledForegroundColor: Colors.white.withValues(
                           alpha: 0.85,
                         ),
@@ -1266,8 +1347,10 @@ class _QuizTakeViewState extends State<QuizTakeView>
         final sel = _selectedOption == i;
         final correct = q['correctIndex'] == i;
 
-        Color border = const Color(0xFFE2E8F0);
-        Color bg = Colors.white;
+        Color border = _eliteMode
+            ? const Color(0xFF2F3E37)
+            : const Color(0xFFE2E8F0);
+        Color bg = _cardFill;
         if (_answered) {
           if (correct) {
             bg = const Color(0xFFECFDF5);
@@ -1277,8 +1360,12 @@ class _QuizTakeViewState extends State<QuizTakeView>
             border = const Color(0xFFEF4444);
           }
         } else if (sel) {
-          bg = const Color(0xFFEFF6FF);
-          border = const Color(0xFF3B82F6);
+          bg = _eliteMode
+              ? const Color(0xFFF1C40F).withValues(alpha: 0.2)
+              : const Color(0xFFEFF6FF);
+          border = _eliteMode
+              ? const Color(0xFFF1C40F)
+              : const Color(0xFF3B82F6);
         }
 
         return GestureDetector(
@@ -1293,18 +1380,40 @@ class _QuizTakeViewState extends State<QuizTakeView>
                 color: border,
                 width: sel || (_answered && correct) ? 2 : 1,
               ),
+              boxShadow: sel
+                  ? [
+                      BoxShadow(
+                        color:
+                            (_eliteMode
+                                    ? const Color(0xFFF1C40F)
+                                    : const Color(0xFF3B82F6))
+                                .withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: sel ? border : const Color(0xFFF1F5F9),
+                  backgroundColor: sel
+                      ? border
+                      : (_eliteMode
+                            ? const Color(0xFF2F3E37).withValues(alpha: 0.6)
+                            : const Color(0xFFF1F5F9)),
                   child: Text(
                     String.fromCharCode(65 + i),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: sel ? Colors.white : const Color(0xFF64748B),
+                      color: sel
+                          ? Colors.white
+                          : (_eliteMode
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF64748B)),
                     ),
                   ),
                 ),
@@ -1312,10 +1421,10 @@ class _QuizTakeViewState extends State<QuizTakeView>
                 Expanded(
                   child: Text(
                     text,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                      color: _textPrimary,
                     ),
                   ),
                 ),
@@ -1331,22 +1440,25 @@ class _QuizTakeViewState extends State<QuizTakeView>
   //  SEQUENCE ORDER WIDGETS
   // ═══════════════════════════════════════════════════════════════════
 
-  void _resetSequenceOrder(int slotCount) {
+  void _resetSequenceOrder() {
     setState(() {
-      final allItems = <String>[
-        ..._targetSlots.whereType<String>(),
-        ..._availableItems,
-      ];
-      _targetSlots = List<String?>.filled(slotCount, null);
-      _availableItems = allItems;
-      _selectedAvailableIndex = null;
+      _availableItems = <String>[..._targetSlots, ..._availableItems];
+      _targetSlots = [];
       _sequenceChecked = false;
+    });
+  }
+
+  void _onSequenceReorder(int oldIndex, int newIndex) {
+    if (_sequenceChecked) return;
+    setState(() {
+      final item = _targetSlots.removeAt(oldIndex);
+      _targetSlots.insert(newIndex, item);
     });
   }
 
   Widget _buildSequence(Map<String, dynamic> q) {
     final int slotCount = (q['sequence'] as List).length;
-    final int filled = _targetSlots.where((s) => s != null).length;
+    final int filled = _targetSlots.length;
     const double columnHeight = 380.0;
 
     return Column(
@@ -1363,29 +1475,29 @@ class _QuizTakeViewState extends State<QuizTakeView>
                 children: [
                   Text(
                     'Available Items',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
+                      color: _textPrimary,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SizedBox(
-                    height: columnHeight,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: columnHeight),
                     child: _availableItems.isEmpty
                         ? Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: _cardFill,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
+                              border: Border.all(color: _cardBorder),
                             ),
                             child: Center(
                               child: Text(
                                 'All items assigned',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade500,
+                                  color: _textSecondary,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -1398,15 +1510,14 @@ class _QuizTakeViewState extends State<QuizTakeView>
                               children: List.generate(_availableItems.length, (
                                 i,
                               ) {
-                                final isSel = _selectedAvailableIndex == i;
+                                final item = _availableItems[i];
                                 return GestureDetector(
                                   onTap: _sequenceChecked
                                       ? null
-                                      : () => setState(
-                                          () => _selectedAvailableIndex = isSel
-                                              ? null
-                                              : i,
-                                        ),
+                                      : () => setState(() {
+                                          _availableItems.removeAt(i);
+                                          _targetSlots.add(item);
+                                        }),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     padding: const EdgeInsets.symmetric(
@@ -1414,25 +1525,19 @@ class _QuizTakeViewState extends State<QuizTakeView>
                                       vertical: 9,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isSel
-                                          ? const Color(0xFF1E5E2F)
-                                          : Colors.white,
+                                      color: _cardFill,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: isSel
-                                            ? const Color(0xFF1E5E2F)
-                                            : Colors.grey.shade300,
-                                        width: isSel ? 2 : 1,
+                                        color: _cardBorder,
+                                        width: 1,
                                       ),
                                     ),
                                     child: Text(
-                                      _availableItems[i],
+                                      item,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: isSel
-                                            ? Colors.white
-                                            : const Color(0xFF1E293B),
+                                        color: _textPrimary,
                                       ),
                                     ),
                                   ),
@@ -1452,26 +1557,93 @@ class _QuizTakeViewState extends State<QuizTakeView>
                 children: [
                   Text(
                     'Target Order ($filled/$slotCount)',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
+                      color: _textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: columnHeight,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: List.generate(
-                          slotCount,
-                          (i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _slot(i, q),
+                  if (filled >= 2 && !_sequenceChecked) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.drag_indicator_rounded,
+                          size: 14,
+                          color: _textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'Drag to reorder • tap a card to remove',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _textSecondary,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
+                  ],
+                  const SizedBox(height: 10),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: columnHeight),
+                    child: _targetSlots.isEmpty
+                        ? CustomPaint(
+                            painter: _DashedBorderPainter(
+                              color: _eliteMode
+                                  ? const Color(0xFF475569)
+                                  : Colors.grey.shade400,
+                              borderRadius: 12,
+                            ),
+                            child: SizedBox.expand(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    'Tap items on the left to build your '
+                                    'sequence',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _textSecondary,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : ReorderableListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            buildDefaultDragHandles: false,
+                            itemCount: _targetSlots.length,
+                            onReorderItem: _onSequenceReorder,
+                            proxyDecorator: (child, index, animation) =>
+                                AnimatedBuilder(
+                                  animation: animation,
+                                  builder: (context, _) => Material(
+                                    color: Colors.transparent,
+                                    elevation: 6,
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: child,
+                                  ),
+                                ),
+                            itemBuilder: (context, i) {
+                              final value = _targetSlots[i];
+                              return Container(
+                                key: ValueKey(
+                                  'target_slot_${i}_${value.hashCode}',
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: _slot(i, q),
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -1483,16 +1655,19 @@ class _QuizTakeViewState extends State<QuizTakeView>
         Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _sequenceChecked
-                    ? null
-                    : () => _resetSequenceOrder(slotCount),
+              child: OutlinedButton.icon(
+                onPressed: _sequenceChecked ? null : _resetSequenceOrder,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Reset'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade300,
-                  foregroundColor: Colors.grey.shade700,
-                  disabledBackgroundColor: Colors.grey.shade200,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: _eliteMode ? Colors.white : Colors.grey.shade300,
+                  ),
+                  foregroundColor:
+                      _eliteMode
+                          ? Colors.white.withValues(alpha: 0.87)
+                          : Colors.grey.shade700,
+                  disabledForegroundColor: Colors.white54,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1512,9 +1687,10 @@ class _QuizTakeViewState extends State<QuizTakeView>
                   style: const TextStyle(fontSize: 12),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E5E2F),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  backgroundColor: const Color(0xFF2ECC71),
+                  foregroundColor: const Color(0xFF0B1220),
+                  disabledBackgroundColor: const Color(0xFF23352B),
+                  disabledForegroundColor: Colors.white54,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1529,147 +1705,111 @@ class _QuizTakeViewState extends State<QuizTakeView>
   }
 
   Widget _slot(int index, Map<String, dynamic> q) {
-    final filled = _targetSlots[index] != null;
-    final correct =
-        _sequenceChecked &&
-        _targetSlots[index] == (q['sequence'] as List)[index];
-    final wrong = _sequenceChecked && _targetSlots[index] != null && !correct;
+    final item = _targetSlots[index];
+    final correct = _sequenceChecked && item == (q['sequence'] as List)[index];
+    final wrong = _sequenceChecked && !correct;
 
     return GestureDetector(
       onTap: _sequenceChecked
           ? null
-          : () {
-              if (filled) {
-                setState(() {
-                  _availableItems.add(_targetSlots[index]!);
-                  _targetSlots[index] = null;
-                });
-              } else if (_selectedAvailableIndex != null) {
-                setState(() {
-                  _targetSlots[index] =
-                      _availableItems[_selectedAvailableIndex!];
-                  _availableItems.removeAt(_selectedAvailableIndex!);
-                  _selectedAvailableIndex = null;
-                });
-              }
-            },
+          : () => setState(() {
+              _availableItems.add(item);
+              _targetSlots.removeAt(index);
+            }),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: filled
-            ? Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: correct
-                      ? const Color(0xFFECFDF5)
-                      : wrong
-                      ? const Color(0xFFFEF2F2)
-                      : const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: correct
-                        ? const Color(0xFF10B981)
-                        : wrong
-                        ? const Color(0xFFEF4444)
-                        : const Color(0xFF3B82F6),
-                    width: 2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: correct
-                            ? const Color(0xFF10B981)
-                            : wrong
-                            ? const Color(0xFFEF4444)
-                            : const Color(0xFF3B82F6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _targetSlots[index]!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                    ),
-                    if (wrong)
-                      const Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: Color(0xFFEF4444),
-                      ),
-                    if (correct)
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        size: 18,
-                        color: Color(0xFF10B981),
-                      ),
-                  ],
-                ),
-              )
-            : CustomPaint(
-                painter: _DashedBorderPainter(
-                  color: Colors.grey.shade400,
-                  borderRadius: 12,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Tap to assign',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade400,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: correct
+              ? const Color(0xFFD4EFDF)
+              : wrong
+              ? const Color(0xFFFADBD8)
+              : (_eliteMode
+                    ? const Color(0xFFF1C40F).withValues(alpha: 0.15)
+                    : const Color(0xFFEFF6FF)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: correct
+                ? const Color(0xFF145A32)
+                : wrong
+                ? const Color(0xFF78281F)
+                : (_eliteMode
+                      ? const Color(0xFFF1C40F)
+                      : const Color(0xFF3B82F6)),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: correct
+                    ? const Color(0xFF145A32)
+                    : wrong
+                    ? const Color(0xFF78281F)
+                    : (_eliteMode
+                          ? const Color(0xFFF1C40F)
+                          : const Color(0xFF3B82F6)),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                item,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: correct
+                      ? const Color(0xFF145A32)
+                      : wrong
+                      ? const Color(0xFF78281F)
+                      : _textPrimary,
+                ),
+              ),
+            ),
+            if (wrong)
+              const Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: Color(0xFF78281F),
+              ),
+            if (correct)
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 18,
+                color: Color(0xFF145A32),
+              ),
+            if (!_sequenceChecked)
+              ReorderableDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(
+                    Icons.drag_handle_rounded,
+                    size: 20,
+                    color: correct
+                        ? const Color(0xFF145A32)
+                        : wrong
+                        ? const Color(0xFF78281F)
+                        : _textSecondary,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1685,110 +1825,123 @@ class _QuizTakeViewState extends State<QuizTakeView>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+            color: _eliteMode
+                ? const Color(0xFFA78BFA).withValues(alpha: 0.15)
+                : const Color(0xFF8B5CF6).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(999),
+            border: _eliteMode
+                ? Border.all(
+                    color: const Color(0xFFA78BFA).withValues(alpha: 0.3),
+                  )
+                : null,
           ),
           child: Text(
             'Question ${_currentIndex + 1} of ${_questions.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: _eliteMode
+                  ? const Color(0xFFC4B5FD)
+                  : const Color(0xFF1C2822),
             ),
           ),
         ),
         const SizedBox(height: 12),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            TextField(
-              controller: _recallController,
-              enabled: !_recallChecked,
-              maxLines: 5,
-              minLines: 3,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Type or speak your answer here...',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.only(
-                  left: 16,
-                  right: 56,
-                  top: 16,
-                  bottom: 48,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF1E5E2F),
-                    width: 2,
+        _glassWrap(
+          radius: 16,
+          padding: EdgeInsets.zero,
+          fill: _inputFill.withValues(alpha: 0.6),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              TextField(
+                controller: _recallController,
+                enabled: !_recallChecked,
+                maxLines: 5,
+                minLines: 3,
+                style: TextStyle(fontSize: 14, color: _textPrimary),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Type or speak your answer here...',
+                  hintStyle: TextStyle(
+                    color: _eliteMode
+                        ? const Color(0xFF94A3B8)
+                        : Colors.grey.shade400,
                   ),
+                  filled: false,
+                  contentPadding: const EdgeInsets.only(
+                    left: 16,
+                    right: 56,
+                    top: 16,
+                    bottom: 48,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
-            ),
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: AnimatedBuilder(
-                animation: _micPulseAnimation,
-                builder: (context, child) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Transform.scale(
-                      scale: _isListening ? _micPulseAnimation.value : 1.0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isListening
-                              ? const Color(0xFFDC2626)
-                              : Colors.white,
-                          border: Border.all(
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: AnimatedBuilder(
+                  animation: _micPulseAnimation,
+                  builder: (context, child) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Transform.scale(
+                        scale: _isListening ? _micPulseAnimation.value : 1.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             color: _isListening
-                                ? Colors.red
-                                : Colors.grey.shade300,
-                            width: 1.5,
+                                ? const Color(0xFFDC2626)
+                                : (_eliteMode
+                                      ? const Color(0xFF16202E)
+                                      : Colors.white),
+                            border: Border.all(
+                              color: _isListening
+                                  ? Colors.red
+                                  : (_eliteMode
+                                        ? const Color(
+                                            0xFFF1C40F,
+                                          ).withValues(alpha: 0.4)
+                                        : Colors.grey.shade300),
+                              width: 1.5,
+                            ),
+                            boxShadow: _isListening
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.red.withValues(alpha: 0.4),
+                                      blurRadius: 12,
+                                      spreadRadius: 2,
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          boxShadow: _isListening
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.red.withValues(alpha: 0.4),
-                                    blurRadius: 12,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: IconButton(
-                          onPressed: _toggleRecallMic,
-                          tooltip: _isListening
-                              ? 'Stop recording'
-                              : 'Speak answer',
-                          icon: Icon(
-                            _isListening
-                                ? Icons.mic_off_rounded
-                                : Icons.mic_rounded,
-                            color: _isListening
-                                ? Colors.white
-                                : const Color(0xFF1E5E2F),
+                          child: IconButton(
+                            onPressed: _toggleRecallMic,
+                            tooltip: _isListening
+                                ? 'Stop recording'
+                                : 'Speak answer',
+                            icon: Icon(
+                              _isListening
+                                  ? Icons.mic_off_rounded
+                                  : Icons.mic_rounded,
+                              color: _isListening
+                                  ? Colors.white
+                                  : (_eliteMode
+                                        ? const Color(0xFFF1C40F)
+                                        : const Color(0xFF1E5E2F)),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         if (_isListening) ...[
           const SizedBox(height: 8),
@@ -1841,16 +1994,15 @@ class _QuizTakeViewState extends State<QuizTakeView>
   }
 
   Widget _buildAnalyzingIndicator() {
-    return Container(
-      width: double.infinity,
+    return _glassWrap(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-        ),
-      ),
+      radius: 16,
+      fill: _eliteMode
+          ? const Color(0xFF7C3AED).withValues(alpha: 0.14)
+          : const Color(0xFFF5F3FF).withValues(alpha: 0.8),
+      border: _eliteMode
+          ? const Color(0xFFA78BFA).withValues(alpha: 0.35)
+          : const Color(0xFF8B5CF6).withValues(alpha: 0.3),
       child: Row(
         children: [
           AnimatedBuilder(
@@ -1858,22 +2010,26 @@ class _QuizTakeViewState extends State<QuizTakeView>
             builder: (context, child) {
               return Transform.scale(
                 scale: _micPulseAnimation.value,
-                child: const Icon(
+                child: Icon(
                   Icons.smart_toy_rounded,
-                  color: Color(0xFF7C3AED),
+                  color: _eliteMode
+                      ? const Color(0xFFA78BFA)
+                      : const Color(0xFF7C3AED),
                   size: 20,
                 ),
               );
             },
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'AI Tutor is scoring your response…',
+              'SPC Tutor is scoring your response…',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF6D28D9),
+                color: _eliteMode
+                    ? const Color(0xFFC4B5FD)
+                    : const Color(0xFF6D28D9),
               ),
             ),
           ),
@@ -1893,29 +2049,35 @@ class _QuizTakeViewState extends State<QuizTakeView>
         )
         .length;
 
-    return Container(
-      width: double.infinity,
+    return _glassWrap(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-        ),
-      ),
+      radius: 16,
+      fill: _eliteMode
+          ? const Color(0xFF7C3AED).withValues(alpha: 0.14)
+          : const Color(0xFFF5F3FF).withValues(alpha: 0.8),
+      border: _eliteMode
+          ? const Color(0xFFA78BFA).withValues(alpha: 0.35)
+          : const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+      glow: _eliteMode,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.smart_toy_rounded, color: Color(0xFF7C3AED), size: 18),
-              SizedBox(width: 8),
+              Icon(
+                Icons.smart_toy_rounded,
+                color: _eliteMode
+                    ? const Color(0xFFA78BFA)
+                    : const Color(0xFF7C3AED),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
               Text(
-                'AI Tutor Evaluation',
+                'SPC Tutor Evaluation',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+                  color: _textPrimary,
                 ),
               ),
             ],
@@ -1923,20 +2085,18 @@ class _QuizTakeViewState extends State<QuizTakeView>
           const SizedBox(height: 10),
           Text(
             'Concept coverage: $coverage/${concepts.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF6D28D9),
+              color: _eliteMode
+                  ? const Color(0xFFA78BFA)
+                  : const Color(0xFF6D28D9),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             message,
-            style: const TextStyle(
-              fontSize: 12,
-              height: 1.5,
-              color: Color(0xFF1E293B),
-            ),
+            style: TextStyle(fontSize: 12, height: 1.5, color: _textPrimary),
           ),
         ],
       ),
@@ -1952,58 +2112,70 @@ class _QuizTakeViewState extends State<QuizTakeView>
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF0EA5E9).withValues(alpha: 0.08),
+            color: _eliteMode
+                ? const Color(0xFFF1C40F).withValues(alpha: 0.15)
+                : const Color(0xFF0EA5E9).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(999),
+            border: _eliteMode
+                ? Border.all(
+                    color: const Color(0xFFF1C40F).withValues(alpha: 0.3),
+                  )
+                : null,
           ),
           child: Text(
             'Question ${_currentIndex + 1} of ${_questions.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF0F172A),
+              color: _eliteMode
+                  ? const Color(0xFFF1C40F)
+                  : const Color(0xFF0F172A),
             ),
           ),
         ),
-        TextField(
-          controller: _fillBlankController,
-          enabled: !_fillBlankChecked,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: q['promptHint'] as String? ?? 'Type the missing term...',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF1E5E2F), width: 2),
+        _glassWrap(
+          radius: 14,
+          padding: EdgeInsets.zero,
+          fill: _inputFill.withValues(alpha: 0.6),
+          child: TextField(
+            controller: _fillBlankController,
+            enabled: !_fillBlankChecked,
+            style: TextStyle(fontSize: 14, color: _textPrimary),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText:
+                  q['promptHint'] as String? ?? 'Type the missing term...',
+              hintStyle: TextStyle(
+                color: _eliteMode
+                    ? const Color(0xFF94A3B8)
+                    : Colors.grey.shade400,
+              ),
+              filled: false,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
             ),
           ),
         ),
         if (_fillBlankChecked) ...[
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
+          _glassWrap(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _fillBlankCorrect
-                  ? const Color(0xFFECFDF5)
-                  : const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _fillBlankCorrect
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-              ),
-            ),
+            radius: 16,
+            fill: _fillBlankCorrect
+                ? (_eliteMode
+                      ? const Color(0xFF10B981).withValues(alpha: 0.14)
+                      : const Color(0xFFECFDF5).withValues(alpha: 0.9))
+                : (_eliteMode
+                      ? const Color(0xFFEF4444).withValues(alpha: 0.14)
+                      : const Color(0xFFFEF2F2).withValues(alpha: 0.9)),
+            border: _fillBlankCorrect
+                ? const Color(0xFF10B981)
+                : const Color(0xFFEF4444),
             child: Row(
               children: [
                 Icon(
@@ -2037,8 +2209,10 @@ class _QuizTakeViewState extends State<QuizTakeView>
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E5E2F),
-                foregroundColor: Colors.white,
+                backgroundColor: _accent,
+                foregroundColor: _eliteMode
+                    ? const Color(0xFF121B16)
+                    : Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -2070,32 +2244,30 @@ class _QuizTakeViewState extends State<QuizTakeView>
         ? 'Good'
         : 'Needs Work';
 
-    return Container(
-      width: double.infinity,
+    return _glassWrap(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+      radius: 16,
+      border: _eliteMode ? const Color(0xFF2F3E37) : const Color(0xFFE2E8F0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.auto_awesome_rounded,
                 size: 18,
-                color: Color(0xFF8B5CF6),
+                color: _eliteMode
+                    ? const Color(0xFFA78BFA)
+                    : const Color(0xFF8B5CF6),
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 'AI Feedback',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+                  color: _textPrimary,
                 ),
               ),
             ],
@@ -2118,10 +2290,12 @@ class _QuizTakeViewState extends State<QuizTakeView>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.speed_rounded,
                       size: 16,
-                      color: Color(0xFF1E5E2F),
+                      color: _eliteMode
+                          ? const Color(0xFFF1C40F)
+                          : const Color(0xFF1E5E2F),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -2154,7 +2328,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: _textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -2175,9 +2349,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
                       r['concept']!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: ok
-                            ? const Color(0xFF1E293B)
-                            : Colors.grey.shade500,
+                        color: ok ? _textPrimary : Colors.grey.shade500,
                         decoration: ok ? null : TextDecoration.lineThrough,
                       ),
                     ),
@@ -2194,7 +2366,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: _textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -2202,16 +2374,19 @@ class _QuizTakeViewState extends State<QuizTakeView>
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
+              color: _eliteMode
+                  ? const Color(0xFF0F172A).withValues(alpha: 0.6)
+                  : const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(10),
+              border: _eliteMode
+                  ? Border.all(
+                      color: const Color(0xFFF1C40F).withValues(alpha: 0.2),
+                    )
+                  : null,
             ),
             child: Text(
               q['modelAnswer'] as String,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF1E293B),
-                height: 1.5,
-              ),
+              style: TextStyle(fontSize: 12, color: _textPrimary, height: 1.5),
             ),
           ),
         ],
@@ -2224,63 +2399,76 @@ class _QuizTakeViewState extends State<QuizTakeView>
   // ═══════════════════════════════════════════════════════════════════
 
   Widget _gamBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _miniStat(
-            Icons.bolt_rounded,
-            '$_pointsEarned XP',
-            const Color(0xFF1E5E2F),
-          ),
-          Container(width: 1, height: 20, color: Colors.grey.shade200),
-          _miniStat(Icons.timer_rounded, _elapsedTime, const Color(0xFF64748B)),
-          Container(width: 1, height: 20, color: Colors.grey.shade200),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: _antiCheatViolations == 0
-                  ? Colors.grey.shade100
-                  : Colors.red.shade50,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: _antiCheatViolations == 0
-                    ? Colors.grey.shade300
-                    : Colors.red.shade300,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: _glassWrap(
+        radius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        border: _eliteMode
+            ? const Color(0xFFF1C40F).withValues(alpha: 0.2)
+            : Colors.black.withValues(alpha: 0.05),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _miniStat(Icons.bolt_rounded, '$_pointsEarned XP', _accent),
+            Container(
+              width: 1,
+              height: 20,
+              color: _eliteMode
+                  ? const Color(0xFF2F3E37)
+                  : Colors.grey.shade200,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.shield_rounded,
-                  size: 12,
+            _miniStat(Icons.timer_rounded, _elapsedTime, _textSecondary),
+            Container(
+              width: 1,
+              height: 20,
+              color: _eliteMode
+                  ? const Color(0xFF2F3E37)
+                  : Colors.grey.shade200,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _antiCheatViolations == 0
+                    ? (_eliteMode
+                          ? const Color(0xFF2F3E37).withValues(alpha: 0.4)
+                          : Colors.grey.shade100)
+                    : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
                   color: _antiCheatViolations == 0
-                      ? const Color(0xFF64748B)
-                      : Colors.red.shade700,
+                      ? (_eliteMode
+                            ? const Color(0xFFF1C40F).withValues(alpha: 0.3)
+                            : Colors.grey.shade300)
+                      : Colors.red.shade300,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '$_antiCheatViolations/$_maxViolations',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.shield_rounded,
+                    size: 12,
                     color: _antiCheatViolations == 0
-                        ? const Color(0xFF64748B)
+                        ? _textSecondary
                         : Colors.red.shade700,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_antiCheatViolations/$_maxViolations',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: _antiCheatViolations == 0
+                          ? _textSecondary
+                          : Colors.red.shade700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2317,7 +2505,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1E293B),
+            color: Color(0xFF1C2822),
           ),
         ),
         const Spacer(),
@@ -2348,7 +2536,7 @@ class _QuizTakeViewState extends State<QuizTakeView>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: color ?? const Color(0xFF1E293B),
+              color: color ?? const Color(0xFF1C2822),
             ),
           ),
         ],

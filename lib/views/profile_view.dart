@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/game_progress.dart';
+import '../theme_controller.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -41,13 +42,20 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 16),
             Text(
               badge.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               badge.desc,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -85,7 +93,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
@@ -149,9 +157,11 @@ class _ProfileViewState extends State<ProfileView> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,11 +171,19 @@ class _ProfileViewState extends State<ProfileView> {
                           children: [
                             Text(
                               'XP Progress to Level ${progress.level + 1}',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                             Text(
                               '${progress.xp} / ${progress.xpToNext} XP',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E5E2F),
+                              ),
                             ),
                           ],
                         ),
@@ -180,7 +198,11 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text('${progress.xpToNext - progress.xp} XP to Honor Scholar', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        Text('${progress.xpToNext - progress.xp} XP to Honor Scholar',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          )),
                       ],
                     ),
                   ),
@@ -203,9 +225,11 @@ class _ProfileViewState extends State<ProfileView> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,9 +238,13 @@ class _ProfileViewState extends State<ProfileView> {
                           children: [
                             const Icon(Icons.emoji_events_rounded, size: 20, color: Color(0xFF1E5E2F)),
                             const SizedBox(width: 8),
-                            const Text(
+                            Text(
                               'Featured Badges',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                             const Spacer(),
                             Container(
@@ -235,7 +263,10 @@ class _ProfileViewState extends State<ProfileView> {
                         const SizedBox(height: 4),
                         Text(
                           '${progress.unlockedCount} of ${progress.totalBadges} badges unlocked',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         if (_featuredBadges.isEmpty)
@@ -244,7 +275,12 @@ class _ProfileViewState extends State<ProfileView> {
                             child: Center(
                               child: Text(
                                 'Complete quizzes to earn your first badge!',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                               ),
                             ),
                           )
@@ -265,7 +301,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     margin: const EdgeInsets.only(right: 10),
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FDF8),
+                                      color: Theme.of(context).cardColor,
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
                                       boxShadow: [
@@ -293,10 +329,12 @@ class _ProfileViewState extends State<ProfileView> {
                                           textAlign: TextAlign.center,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E293B),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
                                           ),
                                         ),
                                       ],
@@ -312,18 +350,24 @@ class _ProfileViewState extends State<ProfileView> {
                   const SizedBox(height: 20),
 
                   // 5. RANK LEVELS
-                  const Text(
+                  Text(
                     'Rank Levels',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 320),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: ScrollConfiguration(
                       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
@@ -348,23 +392,30 @@ class _ProfileViewState extends State<ProfileView> {
                   const SizedBox(height: 20),
 
                   // 6. ACCOUNT SETTINGS
-                  const Text(
+                  Text(
                     'Account Settings',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: Column(
                       children: [
-                        _buildSettingsTile(Icons.edit_rounded, 'Edit Profile', 'Update your personal information'),
-                        _buildSettingsTile(Icons.notifications_rounded, 'Notifications', 'Manage your notification preferences'),
-                        _buildSettingsTile(Icons.security_rounded, 'Security', 'Change password and privacy settings'),
+                        _buildThemeTile(),
+_buildSettingsTile(Icons.edit_rounded, 'Edit Profile', 'Update your personal information', const Color(0xFF60A5FA)),
+                  _buildSettingsTile(Icons.notifications_rounded, 'Notifications', 'Manage your notification preferences', const Color(0xFFFBBF24)),
+                  _buildSettingsTile(Icons.security_rounded, 'Security', 'Change password and privacy settings', const Color(0xFFF87171)),
                       ],
                     ),
                   ),
@@ -379,7 +430,13 @@ class _ProfileViewState extends State<ProfileView> {
                           context: context,
                           builder: (context) => AlertDialog(
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            title: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                            title: Text(
+                              'Log Out',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                             content: const Text('Are you sure you want to log out of your account?'),
                             actions: [
                               TextButton(
@@ -416,7 +473,78 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
 
-  Widget _buildSettingsTile(IconData icon, String title, String subtitle) {
+  Widget _buildThemeTile() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      ),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeController.mode,
+        builder: (context, mode, _) {
+          final bool isDark = mode == ThemeMode.dark;
+          return Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF2ECC71).withValues(alpha: 0.15)
+                      : Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  size: 20,
+                  color: isDark
+                      ? const Color(0xFF2ECC71)
+                      : const Color(0xFF1E5E2F),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dark Mode',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isDark ? 'Using dark theme' : 'Switch to a dark theme',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isDark,
+                activeTrackColor: const Color(0xFF2ECC71),
+                onChanged: ThemeController.setDark,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(IconData icon, String title, String subtitle, Color accent) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
@@ -424,8 +552,20 @@ class _ProfileViewState extends State<ProfileView> {
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-            content: Text('$title feature coming soon.', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            title: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            content: Text(
+              '$title feature coming soon.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -441,7 +581,9 @@ class _ProfileViewState extends State<ProfileView> {
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
         ),
         child: Row(
@@ -449,23 +591,46 @@ class _ProfileViewState extends State<ProfileView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: isDark
+                    ? accent.withValues(alpha: 0.15)
+                    : Theme.of(context).colorScheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 20, color: const Color(0xFF1E5E2F)),
+              child: Icon(
+                icon,
+                size: 20,
+                color: isDark ? accent : const Color(0xFF1E5E2F),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -477,15 +642,30 @@ class _ProfileViewState extends State<ProfileView> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Column(
           children: [
-            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
       ),
@@ -497,14 +677,18 @@ class _ProfileViewState extends State<ProfileView> {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isCurrent ? const Color(0xFFE8F5E9) : Colors.transparent,
+        color: isCurrent
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(
             isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            color: isCurrent ? const Color(0xFF1E5E2F) : Colors.grey.shade400,
+            color: isCurrent
+                ? const Color(0xFF1E5E2F)
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -513,7 +697,9 @@ class _ProfileViewState extends State<ProfileView> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-              color: isCurrent ? const Color(0xFF1E293B) : Colors.grey.shade600,
+              color: isCurrent
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

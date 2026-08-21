@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import '../widgets/custom_app_header.dart';
 
 class AiTutorView extends StatefulWidget {
   const AiTutorView({super.key});
@@ -7,8 +9,13 @@ class AiTutorView extends StatefulWidget {
   State<AiTutorView> createState() => _AiTutorViewState();
 }
 
-class _AiTutorViewState extends State<AiTutorView> {
+class _AiTutorViewState extends State<AiTutorView>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
+  final SpeechToText _speechToText = SpeechToText();
+  bool _isRecording = false;
+  late final AnimationController _micPulseController;
+  late final Animation<double> _micPulseAnimation;
   final List<Map<String, dynamic>> _messages = [
     {
       'isUser': false,
@@ -127,42 +134,76 @@ class _AiTutorViewState extends State<AiTutorView> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _micPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _micPulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _micPulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _micPulseController.dispose();
+    _speechToText.stop();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      await _speechToText.stop();
+      _micPulseController.stop();
+      if (mounted) setState(() => _isRecording = false);
+      return;
+    }
+
+    final available = await _speechToText.initialize();
+    if (!available) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Speech recognition is not available on this device.'),
+        ),
+      );
+      return;
+    }
+
+    await _speechToText.listen(
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() {
+          _messageController.text = result.recognizedWords;
+          _messageController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _messageController.text.length),
+          );
+        });
+      },
+      listenOptions: SpeechListenOptions(
+        listenFor: const Duration(seconds: 20),
+        pauseFor: const Duration(seconds: 3),
+        localeId: 'en_US',
+        cancelOnError: true,
+        partialResults: true,
+      ),
+    );
+
+    _micPulseController.repeat(reverse: true);
+    if (mounted) setState(() => _isRecording = true);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E293B)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E5E2F).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.smart_toy_rounded, color: Color(0xFF1E5E2F), size: 20),
-            ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Tutor',
-                  style: TextStyle(color: Color(0xFF1E293B), fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Always online • Step-by-step help',
-                  style: TextStyle(color: Color(0xFF166534), fontSize: 11, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ],
-        ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: const CustomAppHeader(
+        title: 'SPC Tutor',
+        subtitle: 'Always online • Step-by-step help',
+        leadingIcon: Icons.smart_toy_rounded,
+        showBackButton: true,
       ),
       body: Column(
         children: [
@@ -184,7 +225,7 @@ class _AiTutorViewState extends State<AiTutorView> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF1E5E2F) : Colors.white,
+                      color: isUser ? const Color(0xFF1E5E2F) : Theme.of(context).cardColor,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -202,7 +243,9 @@ class _AiTutorViewState extends State<AiTutorView> {
                     child: Text(
                       message['text'],
                       style: TextStyle(
-                        color: isUser ? Colors.white : const Color(0xFF1E293B),
+                        color: isUser
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -232,7 +275,7 @@ class _AiTutorViewState extends State<AiTutorView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -245,8 +288,64 @@ class _AiTutorViewState extends State<AiTutorView> {
               children: [
                 // Attach Button
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF64748B), size: 26),
+                  icon: Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 26,
+                  ),
                   onPressed: _showAttachmentBottomSheet,
+                ),
+                const SizedBox(width: 4),
+
+                // Voice Recording Button (Active Recall effect)
+                AnimatedBuilder(
+                  animation: _micPulseAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _isRecording ? _micPulseAnimation.value : 1.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isRecording
+                              ? const Color(0xFFDC2626)
+                              : Theme.of(context).cardColor,
+                          border: Border.all(
+                            color: _isRecording
+                                ? Colors.red
+                                : Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF2ECC71)
+                                    : const Color(0xFF1E5E2F),
+                            width: 1.5,
+                          ),
+                          boxShadow: _isRecording
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.red.withValues(alpha: 0.4),
+                                    blurRadius: 12,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: IconButton(
+                          onPressed: _toggleRecording,
+                          tooltip: _isRecording
+                              ? 'Stop recording'
+                              : 'Record voice',
+                          icon: Icon(
+                            _isRecording
+                                ? Icons.mic_off_rounded
+                                : Icons.mic_rounded,
+                            color: _isRecording
+                                ? Colors.white
+                                : Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF2ECC71)
+                                    : const Color(0xFF1E5E2F),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 4),
 
@@ -255,14 +354,20 @@ class _AiTutorViewState extends State<AiTutorView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: _messageController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'Ask a question or describe a problem...',
-                        hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                         border: InputBorder.none,
                       ),
                       onSubmitted: (_) => _sendMessage(),
@@ -292,12 +397,28 @@ class _AiTutorViewState extends State<AiTutorView> {
   }
 
   Widget _buildPromptChip(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: ActionChip(
-        label: Text(text, style: const TextStyle(fontSize: 11, color: Color(0xFF1E5E2F), fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFFE8F0E6),
-        side: BorderSide.none,
+        label: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark
+                ? const Color(0xFFECEFF1)
+                : const Color(0xFF1E5E2F),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: isDark
+            ? Theme.of(context).cardColor
+            : const Color(0xFFE8F0E6),
+        side: BorderSide(
+          color: isDark
+              ? const Color(0xFF2ECC71).withValues(alpha: 0.3)
+              : Colors.transparent,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onPressed: () => _sendMessage(text),
       ),

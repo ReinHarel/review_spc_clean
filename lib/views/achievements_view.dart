@@ -45,13 +45,20 @@ class _AchievementsViewState extends State<AchievementsView> {
             const SizedBox(height: 16),
             Text(
               badge.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               badge.desc,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -182,7 +189,7 @@ class _AchievementsViewState extends State<AchievementsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
@@ -239,16 +246,20 @@ class _AchievementsViewState extends State<AchievementsView> {
                                 visualDensity: VisualDensity.compact,
                                 selected: isSelected,
                                 selectedColor: const Color(0xFF1E5E2F),
-                                backgroundColor: Colors.white,
+                                backgroundColor: Theme.of(context).cardColor,
                                 labelStyle: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   side: BorderSide(
-                                    color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300,
+                                    color: isSelected
+                                        ? const Color(0xFF1E5E2F)
+                                        : Theme.of(context).colorScheme.outlineVariant,
                                   ),
                                 ),
                                 onSelected: (selected) {
@@ -293,6 +304,8 @@ class _AchievementsViewState extends State<AchievementsView> {
   Widget _buildBadgeCard(BadgeData badge) {
     final bool isUnlocked = badge.isUnlocked;
     final Color iconColor = badge.color;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => _showBadgeDialog(badge),
@@ -300,7 +313,7 @@ class _AchievementsViewState extends State<AchievementsView> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isUnlocked ? iconColor.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
@@ -320,7 +333,11 @@ class _AchievementsViewState extends State<AchievementsView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isUnlocked ? iconColor.withValues(alpha: 0.12) : Colors.grey.shade100,
+                color: isUnlocked
+                    ? iconColor.withValues(alpha: 0.12)
+                    : isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.grey.shade100,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -343,7 +360,7 @@ class _AchievementsViewState extends State<AchievementsView> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isUnlocked ? const Color(0xFF1E293B) : Colors.grey.shade600,
+                          color: isUnlocked ? scheme.onSurface : scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -354,7 +371,7 @@ class _AchievementsViewState extends State<AchievementsView> {
                   const SizedBox(height: 3),
                   Text(
                     badge.desc,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
                   ),
                   if (!isUnlocked) ...[
                     const SizedBox(height: 8),
@@ -366,7 +383,9 @@ class _AchievementsViewState extends State<AchievementsView> {
                             child: LinearProgressIndicator(
                               value: badge.progress,
                               minHeight: 5,
-                              backgroundColor: Colors.grey.shade200,
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.grey.shade200,
                               valueColor: AlwaysStoppedAnimation<Color>(iconColor.withValues(alpha: 0.7)),
                             ),
                           ),
@@ -374,7 +393,11 @@ class _AchievementsViewState extends State<AchievementsView> {
                         const SizedBox(width: 10),
                         Text(
                           badge.currentProgressText.isEmpty ? 'Locked' : badge.currentProgressText,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),

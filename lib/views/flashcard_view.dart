@@ -119,7 +119,9 @@ class _FlashcardViewState extends State<FlashcardView> with SingleTickerProvider
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).scaffoldBackgroundColor
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -128,14 +130,26 @@ class _FlashcardViewState extends State<FlashcardView> with SingleTickerProvider
                   Column(
                     children: [
                       Text('${_masteredIndexes.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                      const Text('Mastered', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      Text(
+                        'Mastered',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
-                  Container(width: 1, height: 30, color: Colors.grey.shade300),
+                  Container(width: 1, height: 30, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
                   Column(
                     children: [
                       Text('${_learningIndexes.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
-                      const Text('Learning', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      Text(
+                        'Learning',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -173,7 +187,7 @@ class _FlashcardViewState extends State<FlashcardView> with SingleTickerProvider
     final double progress = (_currentIndex + 1) / _flashcards.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -212,7 +226,10 @@ class _FlashcardViewState extends State<FlashcardView> with SingleTickerProvider
                 children: [
                   Text(
                     'Card ${_currentIndex + 1} of ${_flashcards.length}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -233,7 +250,9 @@ class _FlashcardViewState extends State<FlashcardView> with SingleTickerProvider
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 6,
-                  backgroundColor: const Color(0xFFE2E8F0),
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : const Color(0xFFE2E8F0),
                   valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
                 ),
               ),

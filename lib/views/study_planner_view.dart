@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_header.dart';
 
 class StudyPlannerView extends StatefulWidget {
   const StudyPlannerView({super.key});
@@ -47,7 +48,12 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
   final List<String> _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   final List<int> _dates = [10, 11, 12, 13, 14, 15, 16];
-  final List<String> _subjects = ['All', 'Biology 101', 'Computer Prog 2', 'Phil History'];
+  final List<String> _subjects = [
+    'All',
+    'Biology 101',
+    'Computer Prog 2',
+    'Phil History',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -59,33 +65,25 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     double progressValue = _tasks.isEmpty ? 0 : completedCount / _tasks.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1E5E2F), Color(0xFF0F381B)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Study Planner',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: CustomAppHeader(
+        title: 'Study Planner',
+        showBackButton: false,
         actions: [
           IconButton(
             tooltip: 'AI Auto-Schedule',
             icon: const Icon(Icons.auto_awesome, color: Color(0xFFFBBF24)),
             onPressed: _showAiAutoScheduleDialog,
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
+        padding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 100,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -110,7 +108,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               children: [
                 Text(
                   _isMonthlyView ? 'Monthly Calendar' : 'Weekly Schedule',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF111827)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 InkWell(
                   onTap: () {
@@ -119,19 +121,34 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(_isMonthlyView ? Icons.view_week_rounded : Icons.calendar_month_rounded, size: 14, color: const Color(0xFF1E5E2F)),
+                        Icon(
+                          _isMonthlyView
+                              ? Icons.view_week_rounded
+                              : Icons.calendar_month_rounded,
+                          size: 14,
+                          color: const Color(0xFF1E5E2F),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _isMonthlyView ? 'Week View' : 'Month View',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F)),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E5E2F),
+                          ),
                         ),
                       ],
                     ),
@@ -157,11 +174,18 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               children: [
                 Text(
                   'Tasks for ${_days[_selectedDayIndex]} (${_dates[_selectedDayIndex]})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF111827)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 Text(
                   '${filteredTasks.length} Items',
-                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -195,7 +219,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               color: const Color(0xFF1E5E2F).withValues(alpha: 0.35),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: FloatingActionButton.extended(
@@ -204,7 +228,10 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           foregroundColor: Colors.white,
           onPressed: _showAddTaskBottomSheet,
           icon: const Icon(Icons.add_rounded),
-          label: const Text('Add Task', style: TextStyle(fontWeight: FontWeight.bold)),
+          label: const Text(
+            'Add Task',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -232,7 +259,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               color: Colors.red.shade100,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.notifications_active_rounded, color: Color(0xFFDC2626), size: 18),
+            child: const Icon(
+              Icons.notifications_active_rounded,
+              color: Color(0xFFDC2626),
+              size: 18,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -241,7 +272,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               children: const [
                 Text(
                   '🚨 Upcoming Major Exam',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF991B1B)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Color(0xFF991B1B),
+                  ),
                 ),
                 Text(
                   'Biology 101 Midterms in 3 Days!',
@@ -257,14 +292,21 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Study Session created for Biology Midterms!')),
+                const SnackBar(
+                  content: Text('Study Session created for Biology Midterms!'),
+                ),
               );
             },
-            child: const Text('Study Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Study Now',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -297,25 +339,29 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                         end: Alignment.bottomCenter,
                       )
                     : null,
-                color: isSelected ? null : Colors.white,
+                color: isSelected ? null : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB),
+                  color: isSelected
+                      ? Colors.transparent
+                      : Theme.of(context).colorScheme.outlineVariant,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF1E5E2F).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFF1E5E2F,
+                          ).withValues(alpha: 0.35),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ]
                     : [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
-                        )
+                        ),
                       ],
               ),
               child: Column(
@@ -324,8 +370,12 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                     _days[index],
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? Colors.white70 : const Color(0xFF9CA3AF),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white70
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -334,7 +384,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : const Color(0xFF1F2937),
+                      color: isSelected
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -350,14 +402,14 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -365,8 +417,15 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('August 2026', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+              Text(
+                'August 2026',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 12,
+                color: Colors.grey,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -386,10 +445,14 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: isToday ? const Color(0xFF1E5E2F) : const Color(0xFFF9FAFB),
+                  color: isToday
+                      ? const Color(0xFF1E5E2F)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isToday ? const Color(0xFF1E5E2F) : const Color(0xFFE5E7EB),
+                    color: isToday
+                        ? const Color(0xFF1E5E2F)
+                        : Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
                 child: Column(
@@ -399,8 +462,12 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       '$dayNumber',
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        color: isToday ? Colors.white : Colors.black87,
+                        fontWeight: isToday
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isToday
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (hasEvents) ...[
@@ -409,11 +476,13 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                         width: 4,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: isToday ? Colors.amber : const Color(0xFF1E5E2F),
+                          color: isToday
+                              ? Colors.amber
+                              : const Color(0xFF1E5E2F),
                           shape: BoxShape.circle,
                         ),
-                      )
-                    ]
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -428,14 +497,14 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -445,16 +514,23 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
+                children: [
                   Text(
                     "Today's Goal Progress ",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2937)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                  Text("🎯", style: TextStyle(fontSize: 14)),
+                  const Text("🎯", style: TextStyle(fontSize: 14)),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.amber.shade100, Colors.orange.shade50],
@@ -464,7 +540,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 14),
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      color: Colors.orange,
+                      size: 14,
+                    ),
                     SizedBox(width: 4),
                     Text(
                       '5 Day Streak',
@@ -482,7 +562,10 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           const SizedBox(height: 6),
           Text(
             '$completedCount of ${_tasks.length} tasks completed',
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 14),
           ClipRRect(
@@ -492,7 +575,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               child: LinearProgressIndicator(
                 value: progressValue,
                 backgroundColor: const Color(0xFFE5E7EB),
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E5E2F)),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF1E5E2F),
+                ),
               ),
             ),
           ),
@@ -517,7 +602,7 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
             color: const Color(0xFF0284C7).withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -528,20 +613,32 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.psychology_alt_rounded, color: Color(0xFF0284C7), size: 20),
+            child: const Icon(
+              Icons.psychology_alt_rounded,
+              color: Color(0xFF0284C7),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: RichText(
               text: const TextSpan(
-                style: TextStyle(fontSize: 12, color: Color(0xFF334155), height: 1.3),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF334155),
+                  height: 1.3,
+                ),
                 children: [
                   TextSpan(
                     text: 'AI Study Insight: ',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0369A1),
+                    ),
                   ),
                   TextSpan(
-                    text: 'Your peak focus time is 09:00 AM. Great job starting Biology early!',
+                    text:
+                        'Your peak focus time is 09:00 AM. Great job starting Biology early!',
                   ),
                 ],
               ),
@@ -565,16 +662,20 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               label: Text(subj),
               selected: isSelected,
               selectedColor: const Color(0xFF1E5E2F),
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).cardColor,
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF374151),
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 12,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB),
+                  color: isSelected
+                      ? Colors.transparent
+                      : Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
               onSelected: (bool selected) {
@@ -596,17 +697,19 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isCompleted ? const Color(0xFFBBF7D0) : const Color(0xFFF3F4F6),
+          color: isCompleted
+              ? const Color(0xFFBBF7D0)
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -616,7 +719,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
             child: Checkbox(
               value: isCompleted,
               activeColor: const Color(0xFF1E5E2F),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
               onChanged: (val) {
                 setState(() {
                   task['isCompleted'] = val;
@@ -647,20 +752,29 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
-                          color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF1F2937),
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isCompleted
+                              ? const Color(0xFF9CA3AF)
+                              : Theme.of(context).colorScheme.onSurface,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     // PRIORITY BADGE
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: task['priority'] == 'HIGH'
                             ? Colors.red.shade50
                             : task['priority'] == 'MED'
-                                ? Colors.amber.shade50
-                                : Colors.blue.shade50,
+                            ? Colors.amber.shade50
+                            : Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -671,8 +785,8 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                           color: task['priority'] == 'HIGH'
                               ? Colors.red.shade700
                               : task['priority'] == 'MED'
-                                  ? Colors.amber.shade800
-                                  : Colors.blue.shade700,
+                              ? Colors.amber.shade800
+                              : Colors.blue.shade700,
                         ),
                       ),
                     ),
@@ -682,7 +796,10 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(6),
@@ -697,11 +814,22 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF6B7280)),
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 12,
+                      color: Color(0xFF6B7280),
+                    ),
                     const SizedBox(width: 4),
-                    Text(
-                      task['time'],
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    Flexible(
+                      child: Text(
+                        task['time'],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -711,12 +839,20 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
           IconButton(
             tooltip: 'Start Focus Session',
-            icon: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFF1E5E2F), size: 30),
+            icon: const Icon(
+              Icons.play_circle_fill_rounded,
+              color: Color(0xFF1E5E2F),
+              size: 30,
+            ),
             onPressed: () => _showFocusTimerModal(task['title']),
           ),
           IconButton(
             tooltip: 'Delete Task',
-            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: Color(0xFFEF4444),
+              size: 20,
+            ),
             onPressed: () {
               setState(() {
                 _tasks.removeWhere((t) => t['id'] == task['id']);
@@ -732,23 +868,35 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildSummaryItem(Icons.timer_outlined, 'Total Focus', '4.5 hrs'),
-          Container(height: 30, width: 1, color: const Color(0xFFE5E7EB)),
-          _buildSummaryItem(Icons.check_circle_outline, 'Completed', '${_tasks.where((t) => t['isCompleted']).length} Tasks'),
-          Container(height: 30, width: 1, color: const Color(0xFFE5E7EB)),
+          Container(
+            height: 30,
+            width: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          _buildSummaryItem(
+            Icons.check_circle_outline,
+            'Completed',
+            '${_tasks.where((t) => t['isCompleted']).length} Tasks',
+          ),
+          Container(
+            height: 30,
+            width: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
           _buildSummaryItem(Icons.insights, 'Efficiency', '92% 📊'),
         ],
       ),
@@ -762,11 +910,24 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           children: [
             Icon(icon, size: 14, color: const Color(0xFF1E5E2F)),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937))),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
       ],
     );
   }
@@ -776,15 +937,31 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        children: const [
-          Icon(Icons.event_available_rounded, size: 48, color: Color(0xFF9CA3AF)),
-          SizedBox(height: 8),
-          Text('No tasks found for this filter', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6B7280))),
-          Text('Tap "+ Add Task" to schedule a study session.', style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        children: [
+          const Icon(
+            Icons.event_available_rounded,
+            size: 48,
+            color: Color(0xFF9CA3AF),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No tasks found for this filter',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            'Tap "+ Add Task" to schedule a study session.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -849,21 +1026,22 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
               // CATEGORY / TYPE SELECTOR (ASSIGNMENT, PROJECT, STUDY, EXAM)
               DropdownButtonFormField<String>(
-               initialValue: selectedType,
+                initialValue: selectedType,
                 decoration: InputDecoration(
                   labelText: 'Category / Type',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                items: [
-                  'Assignment 📝',
-                  'Project 🎨',
-                  'Study Session 📖',
-                  'Exam Prep 🚨',
-                ].map((type) {
-                  return DropdownMenuItem(value: type, child: Text(type));
-                }).toList(),
+                items:
+                    [
+                      'Assignment 📝',
+                      'Project 🎨',
+                      'Study Session 📖',
+                      'Exam Prep 🚨',
+                    ].map((type) {
+                      return DropdownMenuItem(value: type, child: Text(type));
+                    }).toList(),
                 onChanged: (val) {
                   if (val != null) selectedType = val;
                 },
@@ -879,7 +1057,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                items: ['Biology 101', 'Computer Prog 2', 'Phil History'].map((s) {
+                items: ['Biology 101', 'Computer Prog 2', 'Phil History'].map((
+                  s,
+                ) {
                   return DropdownMenuItem(value: s, child: Text(s));
                 }).toList(),
                 onChanged: (val) {
@@ -906,7 +1086,8 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                       String priority = 'MED';
                       Color taskColor = const Color(0xFF10B981);
 
-                      if (selectedType.contains('Project') || selectedType.contains('Exam')) {
+                      if (selectedType.contains('Project') ||
+                          selectedType.contains('Exam')) {
                         priority = 'HIGH';
                         taskColor = const Color(0xFFEF4444);
                       } else if (selectedType.contains('Assignment')) {
@@ -918,10 +1099,13 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
 
                       setState(() {
                         _tasks.add({
-                          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                          'id': DateTime.now().millisecondsSinceEpoch
+                              .toString(),
                           'title': '$emoji ${titleController.text.trim()}',
                           'subject': selectedSubj,
-                          'time': selectedType.contains('Assignment') || selectedType.contains('Project')
+                          'time':
+                              selectedType.contains('Assignment') ||
+                                  selectedType.contains('Project')
                               ? '11:59 PM (Deadline)'
                               : '02:00 PM - 03:30 PM',
                           'isCompleted': false,
@@ -950,7 +1134,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -958,22 +1144,42 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text('📊 Weekly Study Analytics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Text(
+                '📊 Weekly Study Analytics',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
               const SizedBox(height: 16),
               _buildAnalyticsRow('Biology 101', '2.5 hrs', 0.8, Colors.green),
-              _buildAnalyticsRow('Computer Prog 2', '1.5 hrs', 0.5, Colors.amber),
+              _buildAnalyticsRow(
+                'Computer Prog 2',
+                '1.5 hrs',
+                0.5,
+                Colors.amber,
+              ),
               _buildAnalyticsRow('Phil History', '0.5 hrs', 0.2, Colors.blue),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E5E2F), foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E5E2F),
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Close Analytics'),
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -981,7 +1187,12 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     );
   }
 
-  Widget _buildAnalyticsRow(String subject, String time, double ratio, Color color) {
+  Widget _buildAnalyticsRow(
+    String subject,
+    String time,
+    double ratio,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -990,12 +1201,25 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                subject,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
           const SizedBox(height: 6),
-          LinearProgressIndicator(value: ratio, color: color, backgroundColor: Colors.grey.shade200),
+          LinearProgressIndicator(
+            value: ratio,
+            color: color,
+            backgroundColor: Colors.grey.shade200,
+          ),
         ],
       ),
     );
@@ -1005,18 +1229,34 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(24),
           height: 360,
           child: Column(
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text('⏱️ Focus Session', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Text(
+                '⏱️ Focus Session',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
               const SizedBox(height: 6),
-              Text(taskTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                taskTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 24),
               Stack(
                 alignment: Alignment.center,
@@ -1033,8 +1273,17 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
                   ),
                   Column(
                     children: const [
-                      Text('25:00', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                      Text('Pomodoro', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        '25:00',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Pomodoro',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
                     ],
                   ),
                 ],
@@ -1043,18 +1292,29 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: const Text('Cancel')),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cancel'),
+                  ),
                   ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E5E2F), foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E5E2F),
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Focus session started! Good luck! 🎉')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Focus session started! Good luck! 🎉'),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.play_arrow_rounded),
                     label: const Text('Start Timer'),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         );
@@ -1067,7 +1327,9 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: const [
               Icon(Icons.auto_awesome, color: Color(0xFFFBBF24)),
@@ -1092,7 +1354,11 @@ class _StudyPlannerViewState extends State<StudyPlannerView> {
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✨ AI generated 2 recommended tasks for you!')),
+                  const SnackBar(
+                    content: Text(
+                      '✨ AI generated 2 recommended tasks for you!',
+                    ),
+                  ),
                 );
               },
               child: const Text('Generate Tasks'),

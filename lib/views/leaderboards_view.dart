@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_header.dart';
 
 class LeaderboardsView extends StatefulWidget {
   const LeaderboardsView({super.key});
@@ -91,7 +92,7 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -121,19 +122,10 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
     final remainingRanks = _leaderboardData.skip(3).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E5E2F),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Leaderboards',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: const CustomAppHeader(
+        title: 'Leaderboards',
+        showBackButton: true,
       ),
       body: Column(
         children: [
@@ -355,6 +347,8 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
   }
 
   Widget _buildPodiumTile(Map<String, dynamic> student, int rank, Color crownColor, double height) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Stack(
@@ -371,20 +365,38 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
             ),
             Positioned(
               top: -16,
-              child: Icon(Icons.workspace_premium_rounded, color: crownColor, size: rank == 1 ? 28 : 22),
+              child: Icon(
+                Icons.workspace_premium_rounded,
+                color: crownColor,
+                size: rank == 1 ? 28 : 22,
+                shadows: [
+                  Shadow(
+                    color: crownColor.withValues(alpha: 0.7),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           student['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: isDark ? Colors.white : scheme.onSurface,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         Text(
           '${student['xp']} XP',
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E5E2F)),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFF2ECC71) : const Color(0xFF1E5E2F),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -394,12 +406,24 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [crownColor.withValues(alpha: 0.8), crownColor.withValues(alpha: 0.3)],
+              colors: [crownColor.withValues(alpha: 0.9), crownColor.withValues(alpha: 0.35)],
             ),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(12),
               topRight: Radius.circular(12),
             ),
+            border: Border.all(
+              color: crownColor.withValues(alpha: 0.8),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: crownColor.withValues(alpha: 0.45),
+                blurRadius: 16,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Center(
             child: Text(
@@ -415,15 +439,27 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
   Widget _buildRankCard(Map<String, dynamic> student) {
     final isUser = student['isUser'] == true;
     final rankChange = student['rankChange'] as int;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final Color nameColor = isUser
+        ? const Color(0xFF0F172A)
+        : isDark
+            ? Colors.white
+            : scheme.onSurface;
+    final Color subtitleColor = isUser
+        ? const Color(0xFF334155)
+        : isDark
+            ? Colors.white70
+            : scheme.onSurfaceVariant;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isUser ? const Color(0xFFDCFCE7) : Colors.white,
+        color: isUser ? const Color(0xFFDCFCE7) : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isUser ? const Color(0xFF1E5E2F) : Colors.grey.shade200,
+          color: isUser ? const Color(0xFF1E5E2F) : scheme.outlineVariant,
           width: isUser ? 2 : 1,
         ),
       ),
@@ -440,7 +476,11 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: isUser ? const Color(0xFF1E5E2F) : Colors.grey.shade800,
+                    color: isUser
+                        ? const Color(0xFF1E5E2F)
+                        : isDark
+                            ? Colors.white
+                            : Colors.grey.shade800,
                   ),
                 ),
                 if (rankChange > 0)
@@ -448,7 +488,7 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
                 else if (rankChange < 0)
                   Text('▼${rankChange.abs()}', style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold))
                 else
-                  const Text('—', style: TextStyle(color: Colors.grey, fontSize: 9)),
+                  Text('—', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 9)),
               ],
             ),
           ),
@@ -467,18 +507,26 @@ class _LeaderboardsViewState extends State<LeaderboardsView> {
               children: [
                 Text(
                   student['name'],
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: nameColor,
+                  ),
                 ),
                 Text(
                   '${student['course']} • ${student['streak']}',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: TextStyle(fontSize: 10, color: subtitleColor),
                 ),
               ],
             ),
           ),
           Text(
             '${student['xp']} XP',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E5E2F)),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: isDark ? const Color(0xFF2ECC71) : const Color(0xFF1E5E2F),
+            ),
           ),
 
           // CHALLENGE DUEL BUTTON (Only for other students)

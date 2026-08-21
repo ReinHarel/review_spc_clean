@@ -60,9 +60,10 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
       if (!mounted) return; // 👈 DITO ILALAGAY
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 File uploaded & processed successfully!'),
-          backgroundColor: Color(0xFF1E5E2F),
+        SnackBar(
+          content: const Text('🎉 File uploaded & processed successfully!'),
+          backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     });
@@ -83,9 +84,10 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✨ YouTube video converted to study notes!'),
-            backgroundColor: Color(0xFF1E5E2F),
+          SnackBar(
+            content: const Text('✨ YouTube video converted to study notes!'),
+            backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -100,7 +102,7 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
@@ -120,14 +122,21 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // HEADER TITLE
-            const Text(
+            Text(
               'Upload & Generate AI Materials 📄✨',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Upload lecture notes, PDFs, or paste YouTube video links to create instant quizzes and summaries.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -135,22 +144,35 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.bookmark_outline_rounded, color: Color(0xFF1E5E2F), size: 20),
                   const SizedBox(width: 10),
-                  const Text('Tag Subject: ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text(
+                    'Tag Subject: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                   Expanded(
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedSubject,
                         isExpanded: true,
                         icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                        style: const TextStyle(color: Color(0xFF1E5E2F), fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                         items: ['IT Spec 2', 'IT 104 - DBMS', 'Accounting 101']
                             .map((subj) => DropdownMenuItem(value: subj, child: Text(subj)))
                             .toList(),
@@ -170,7 +192,7 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
               ),
@@ -182,14 +204,21 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
                     child: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF15803D), size: 30),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Drag & Drop or Import Notes',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Supports PDF, DOCX, PPTX (Max 25MB)',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -225,9 +254,11 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
               child: Row(
                 children: [
@@ -236,9 +267,15 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
                   Expanded(
                     child: TextField(
                       controller: _ytController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'Paste YouTube Video Link...',
-                        hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                        hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                         border: InputBorder.none,
                       ),
                     ),
@@ -265,9 +302,13 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
             const SizedBox(height: 24),
 
             // 4. QUICK AI ACTIONS (INTERACTIVE SELECTION)
-            const Text(
+            Text(
               'Quick AI Actions',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 10),
             Row(
@@ -278,7 +319,7 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
                     title: 'Generate Quiz',
                     icon: Icons.auto_awesome_rounded,
                     bgColor: const Color(0xFFFF9800),
-                    textColor: Colors.white,
+                    textColor: Colors.black87,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -309,9 +350,13 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Your Study Documents',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 Row(
                   children: ['All', 'PDF', 'DOCX'].map((filter) {
@@ -330,7 +375,9 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.grey,
+                            color: isSelected
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -390,7 +437,7 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
@@ -417,12 +464,22 @@ class _AiStudyHubViewState extends State<AiStudyHubView> {
               children: [
                 Text(
                   doc['title']!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(doc['subtitle']!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(
+                  doc['subtitle']!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),

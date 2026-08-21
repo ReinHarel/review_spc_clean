@@ -122,7 +122,7 @@ class _NotificationsViewState extends State<NotificationsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
@@ -166,7 +166,14 @@ child: Center(
                       children: [
                         Icon(Icons.notifications_off_rounded, size: 56, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
-                        Text('No notifications yet', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                        Text(
+                          'No notifications yet',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -174,7 +181,10 @@ child: Center(
                     ? Center(
                         child: Text(
                           'No notifications in this category',
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       )
                     : ListView.builder(
@@ -211,13 +221,26 @@ child: Center(
     final bool isSelected = _selectedFilter == label;
     return ChoiceChip(
       visualDensity: VisualDensity.compact,
-      label: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF64748B))),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isSelected
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
       selected: isSelected,
       onSelected: (_) => setState(() => _selectedFilter = label),
       selectedColor: const Color(0xFF1E5E2F),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       showCheckmark: false,
-      side: BorderSide(color: isSelected ? const Color(0xFF1E5E2F) : Colors.grey.shade300),
+      side: BorderSide(
+        color: isSelected
+            ? const Color(0xFF1E5E2F)
+            : Theme.of(context).colorScheme.outlineVariant,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       labelPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -231,10 +254,12 @@ child: Center(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: item.isUnread ? const Color(0xFF1E5E2F).withValues(alpha: 0.25) : Colors.grey.shade200,
+          color: item.isUnread
+              ? const Color(0xFF1E5E2F).withValues(alpha: 0.25)
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
         boxShadow: [
           BoxShadow(
@@ -262,7 +287,11 @@ child: Center(
                     Expanded(
                       child: Text(
                         item.title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
                     if (item.isUnread)
@@ -279,10 +308,20 @@ child: Center(
                 const SizedBox(height: 4),
                 Text(
                   item.subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.3,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                Text(item.time, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                Text(
+                  item.time,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),

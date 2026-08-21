@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'core/constants.dart';
+import 'app_theme.dart';
+import 'theme_controller.dart';
 import 'views/login_view.dart';
 
 void main() {
@@ -11,14 +12,16 @@ class ReviewSPCApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ReviewSPC',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.spcbaGreen),
-        useMaterial3: true,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.mode,
+      builder: (context, themeMode, _) => MaterialApp(
+        title: 'ReviewSPC',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        home: const LoginView(),
       ),
-      home: const LoginView(),
     );
   }
 }

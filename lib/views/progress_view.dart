@@ -21,7 +21,7 @@ class _ProgressViewState extends State<ProgressView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5E2F),
         elevation: 0,
@@ -281,10 +281,10 @@ class _ProgressViewState extends State<ProgressView> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Overall Game Accuracy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      SizedBox(height: 4),
-                      Text('Based on 350+ questions answered across all gamified modules.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    children: [
+                      const Text('Overall Game Accuracy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text('Based on 350+ questions answered across all gamified modules.', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -343,7 +343,7 @@ class _ProgressViewState extends State<ProgressView> {
           _buildHistoryItem(
             icon: Icons.psychology_rounded,
             iconColor: Colors.purple,
-            title: 'AI Tutor session',
+            title: 'SPC Tutor session',
             subtitle: 'Data Structures • 5 questions asked',
             badgeText: 'View',
             badgeColor: Colors.purple.shade100,
@@ -489,6 +489,8 @@ class _ProgressViewState extends State<ProgressView> {
   }
 
   Widget _buildWeeklyFocusChart() {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final hours = [3.5, 2.0, 4.2, 2.8, 3.0, 1.5, 1.0];
     const maxHour = 5.0;
@@ -496,20 +498,26 @@ class _ProgressViewState extends State<ProgressView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Text('Weekly Focus Time ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              Text('⏱️', style: TextStyle(fontSize: 14)),
+            children: [
+              Text(
+                'Weekly Focus Time ',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface),
+              ),
+              const Text('⏱️', style: TextStyle(fontSize: 14)),
             ],
           ),
           const SizedBox(height: 4),
-          const Text('Total: 18.5 hours studied this week', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(
+            'Total: 18.5 hours studied this week',
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             height: 130,
@@ -521,18 +529,31 @@ class _ProgressViewState extends State<ProgressView> {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text('${hours[index]}h', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1E5E2F))),
+                    Text(
+                      '${hours[index]}h',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? const Color(0xFF2ECC71) : const Color(0xFF1E5E2F),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Container(
                       width: 16,
                       height: 80 * heightFactor,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E5E2F),
+                        color: isDark ? const Color(0xFF2ECC71) : const Color(0xFF1E5E2F),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(days[index], style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      days[index],
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white70 : Colors.grey,
+                      ),
+                    ),
                   ],
                 );
               }),
@@ -544,11 +565,13 @@ class _ProgressViewState extends State<ProgressView> {
   }
 
   Widget _buildSubjectComparisonCard(String title, String growth, double preVal, double postVal, String preText, String postText, {String? badgeLabel}) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -571,15 +594,15 @@ class _ProgressViewState extends State<ProgressView> {
           const SizedBox(height: 10),
           Row(
             children: [
-              const SizedBox(width: 60, child: Text('Pre-test', style: TextStyle(fontSize: 11, color: Colors.grey))),
+              SizedBox(width: 60, child: Text('Pre-test', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant))),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(value: preVal, minHeight: 6, backgroundColor: Colors.grey.shade200, color: Colors.grey.shade600),
+                  child: LinearProgressIndicator(value: preVal, minHeight: 6, backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200, color: Colors.grey.shade600),
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(width: 32, child: Text(preText, textAlign: TextAlign.end, style: const TextStyle(fontSize: 11, color: Colors.grey))),
+              SizedBox(width: 32, child: Text(preText, textAlign: TextAlign.end, style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant))),
             ],
           ),
           const SizedBox(height: 6),
@@ -604,7 +627,10 @@ class _ProgressViewState extends State<ProgressView> {
   Widget _buildSubjectHoursCard() {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         children: [
           _buildHourRow('Biology 101', '6.5 hrs studied', 0.65, Colors.green),
@@ -618,19 +644,40 @@ class _ProgressViewState extends State<ProgressView> {
   }
 
   Widget _buildHourRow(String title, String hrs, double val, Color color) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            Text(hrs, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              hrs,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(value: val, minHeight: 6, backgroundColor: Colors.grey.shade100, color: color),
+          child: LinearProgressIndicator(
+            value: val,
+            minHeight: 6,
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.grey.shade100,
+            color: color,
+          ),
         ),
       ],
     );
@@ -639,7 +686,10 @@ class _ProgressViewState extends State<ProgressView> {
   Widget _buildThisWeekActivity() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -657,9 +707,9 @@ class _ProgressViewState extends State<ProgressView> {
       children: [
         Icon(icon, color: const Color(0xFF1E5E2F), size: 22),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -674,23 +724,34 @@ class _ProgressViewState extends State<ProgressView> {
           Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 6),
           Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.black54)),
+          Text(subtitle, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
     );
   }
 
   Widget _buildGameModeRow(String title, String acc, double val, String status, Color color) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               Text(status, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -700,11 +761,25 @@ class _ProgressViewState extends State<ProgressView> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(value: val, minHeight: 6, backgroundColor: Colors.grey.shade200, color: color),
+                  child: LinearProgressIndicator(
+                    value: val,
+                    minHeight: 6,
+                    backgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.shade200,
+                    color: color,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
-              Text(acc, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                acc,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ],
           ),
         ],
@@ -724,7 +799,10 @@ class _ProgressViewState extends State<ProgressView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(icon, color: iconColor, size: 22),
@@ -733,9 +811,22 @@ class _ProgressViewState extends State<ProgressView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -753,7 +844,10 @@ class _ProgressViewState extends State<ProgressView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           CircleAvatar(backgroundColor: Colors.green.shade50, child: Icon(icon, color: const Color(0xFF1E5E2F))),
@@ -762,9 +856,23 @@ class _ProgressViewState extends State<ProgressView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(desc, style: const TextStyle(fontSize: 11, color: Colors.grey, height: 1.3)),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),
